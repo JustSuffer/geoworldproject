@@ -5,12 +5,10 @@ import { X, BarChart2, HelpCircle, Settings, RotateCcw, User } from 'lucide-reac
 import AuthModal from './AuthModal';
 
 // Constants
-const WORD_LENGTH = 5; // As per standard Wordle, but user said "Tahmin sayısı 5 olacak" (5 guesses). 
-// Usually word length is 5. User didn't specify word length, but standard is 5.
-// User said "Tahmin sayısı 5 olacak" -> 5 Guesses allowed.
+const WORD_LENGTH = 6; // Updated to 6 letters
 const MAX_GUESSES = 5; 
 
-export default function WordleGame() {
+export default function WordleGame({ onStats }) {
     const { dailyWord } = useGame(); // Assuming dailyWord is available from context
     const [guesses, setGuesses] = useState([]);
     const [currentGuess, setCurrentGuess] = useState('');
@@ -143,26 +141,22 @@ export default function WordleGame() {
     }, [currentGuess, gameStatus]);
 
     return (
-        <div className="flex flex-col items-center justify-between h-full max-h-screen p-2 md:p-4 text-white">
-            {/* Header */}
-            <div className="flex items-center justify-between w-full max-w-lg border-b border-gray-600 pb-2 mb-2">
-                <div className="w-8"></div> {/* Spacer */}
-                <h1 className="text-2xl md:text-3xl font-bold tracking-wider">WORDLE TR</h1>
-                <div className="flex gap-2">
-                    <User className={`cursor-pointer hover:text-gray-300 ${user ? 'text-green-500' : ''}`} onClick={() => setAuthOpen(true)} />
-                    <BarChart2 className="cursor-pointer hover:text-gray-300" onClick={() => setStatsOpen(true)} />
-                    <Settings className="cursor-pointer hover:text-gray-300" />
+        <div className="flex flex-col items-center justify-between h-full w-full max-w-lg mx-auto pointer-events-none">
+            {/* Spacer for Map visibility */}
+            <div className="flex-1 w-full"></div>
+
+            {/* Game Container - Bottom Aligned */}
+            <div className="pointer-events-auto w-full bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent pt-12 pb-4 px-2 md:px-4 flex flex-col items-center">
+                
+                {/* Grid */}
+                <div className="w-full mb-4 flex justify-center">
+                    <Grid guesses={guesses} currentGuess={currentGuess} targetWord={dailyWord} maxGuesses={MAX_GUESSES} />
                 </div>
-            </div>
 
-            {/* Grid */}
-            <div className="flex-1 flex items-center justify-center w-full overflow-hidden">
-                <Grid guesses={guesses} currentGuess={currentGuess} targetWord={dailyWord} maxGuesses={MAX_GUESSES} />
-            </div>
-
-            {/* Keyboard */}
-            <div className="w-full max-w-3xl mt-4">
-                <Keyboard onKeyPress={onKeyPress} guesses={guesses} targetWord={dailyWord} />
+                {/* Keyboard */}
+                <div className="w-full max-w-3xl">
+                    <Keyboard onKeyPress={onKeyPress} guesses={guesses} targetWord={dailyWord} />
+                </div>
             </div>
 
             {/* Modals */}
@@ -176,7 +170,7 @@ function Grid({ guesses, currentGuess, targetWord, maxGuesses }) {
     const empties = maxGuesses - 1 - guesses.length;
     
     return (
-        <div className="grid grid-rows-5 gap-1.5 aspect-[5/6] h-full max-h-[400px] md:max-h-[500px]">
+        <div className="grid grid-rows-5 gap-1.5 w-full max-w-[350px]">
             {guesses.map((guess, i) => (
                 <Row key={i} guess={guess} targetWord={targetWord} isFinal={true} />
             ))}
@@ -193,10 +187,10 @@ function Grid({ guesses, currentGuess, targetWord, maxGuesses }) {
 function Row({ guess, targetWord, isFinal }) {
     const splitGuess = guess.split('');
     const splitTarget = targetWord.toUpperCase().split('');
-    const length = 5;
+    const length = 6; // Updated to 6
 
     return (
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-6 gap-1.5">
             {Array.from({ length }).map((_, i) => {
                 const char = splitGuess[i];
                 let status = 'empty';
