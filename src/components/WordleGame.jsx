@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { supabase } from '../supabaseClient';
-import { X, BarChart2, HelpCircle, Settings, RotateCcw, User, MapPin } from 'lucide-react';
+import { X, BarChart2, HelpCircle, Settings, RotateCcw, User, MapPin, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import AuthModal from './AuthModal';
 
 // Constants
@@ -9,13 +9,16 @@ const WORD_LENGTH = 6;
 const MAX_GUESSES = 5; 
 
 export default function WordleGame({ onStats }) {
-    const { dailyWord, foundLetters } = useGame();
+    const { dailyWord, foundLetters, gameMode, newGame } = useGame();
     const [guesses, setGuesses] = useState([]);
     const [currentGuess, setCurrentGuess] = useState('');
     const [gameStatus, setGameStatus] = useState('playing'); // playing, won, lost
     const [statsOpen, setStatsOpen] = useState(false);
     const [authOpen, setAuthOpen] = useState(false);
     const [user, setUser] = useState(null);
+    const [isVisible, setIsVisible] = useState(true);
+    const [timeLeft, setTimeLeft] = useState('');
+    
     const [stats, setStats] = useState({
         played: 0,
         winRate: 0,
@@ -23,6 +26,36 @@ export default function WordleGame({ onStats }) {
         maxStreak: 0,
         distribution: [0, 0, 0, 0, 0, 0]
     });
+
+    // Reset game when dailyWord changes (or mode changes)
+    useEffect(() => {
+        setGuesses([]);
+        setCurrentGuess('');
+        setGameStatus('playing');
+    }, [dailyWord]);
+
+    // Timer for Daily Mode
+    useEffect(() => {
+        if (gameMode !== 'daily') return;
+
+        const updateTimer = () => {
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0);
+            
+            const diff = tomorrow - now;
+            const h = Math.floor(diff / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            setTimeLeft(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+        };
+
+        const interval = setInterval(updateTimer, 1000);
+        updateTimer();
+        return () => clearInterval(interval);
+    }, [gameMode]);
 
     // Load stats from Supabase or LocalStorage on mount
     useEffect(() => {
@@ -135,38 +168,58 @@ export default function WordleGame({ onStats }) {
 
     return (
         <div className="flex flex-col items-center justify-between h-full w-full max-w-lg mx-auto pointer-events-none">
+            {/* Visibility Toggle Button */}
+            <button 
+                onClick={() => setIsVisible(!isVisible)}
+                className="pointer-events-auto absolute top-4 right-4 p-3 bg-gray-900/80 hover:bg-gray-800 text-white rounded-full backdrop-blur-md z-50 transition-all"
+                title={isVisible ? "Hide Game" : "Show Game"}
+            >
+                {isVisible ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
+            </button>
+
             {/* Spacer for Map visibility */}
             <div className="flex-1 w-full"></div>
 
             {/* Game Container */}
-            <div className="pointer-events-auto w-full bg-gradient-to-t from-gray-900 via-gray-900/95 to-transparent pt-8 pb-6 px-4 flex flex-col items-center">
+            <div className={`
+                pointer-events-auto w-full bg-gradient-to-t from-gray-900/90 via-gray-900/80 to-transparent pt-8 pb-6 px-4 flex flex-col items-center transition-all duration-500 transform
+                ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
+            `}>
                 
+                {/* Header Info (Timer or Play Again) */}
+                <div className="w-full max-w-[380px] mb-4 flex justify-between items-center text-white/80 text-sm font-bold">
+                    {gameMode === 'daily' ? (
+                        <div className="flex items-center gap-2">
+                            <span>NEXT WORD:</span>
+                            <span className="text-primary">{timeLeft}</span>
+                        </div>
+                    ) : (
+                        <button 
+                            onClick={newGame}
+                            className="flex items-center gap-2 bg-primary hover:bg-red-700 px-3 py-1 rounded-lg text-white transition-colors"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                            NEW WORD
+                        </button>
+                    )}
+                    
+                    <div className="text-xs uppercase tracking-wider opacity-50">
+                        {gameMode === 'daily' ? 'DAILY CHALLENGE' : 'UNLIMITED MODE'}
+                    </div>
+                </div>
+
                 {/* Found Letters / Hints */}
                 <div className="w-full max-w-[380px] mb-6 flex justify-center gap-2">
                     {Array.from({ length: WORD_LENGTH }).map((_, i) => {
                         const letter = dailyWord[i];
-                        const isFound = foundLetters.includes(letter); // Check if this specific letter instance is found? 
-                        // Actually foundLetters is a list of letters found. 
-                        // If the word is "PLANET" and we found 'P', we show 'P'.
-                        // But wait, if word is "APPLE" and we found one 'P', do we show both?
-                        // The context logic `const found = spheres.filter(s => s.found).map(s => s.letter);`
-                        // So if sphere 1 (P) is found, we have 'P'.
-                        // We should map indices to spheres.
-                        
-                        // Let's assume spheres are ordered by word index in GameContext (they are).
-                        // We need access to spheres to know WHICH index is found, not just the letters.
-                        // But `foundLetters` in context is just an array of letters.
-                        // Let's use `foundLetters` for now, assuming unique letters or just showing what we have.
-                        // BETTER: The user wants to see the letter revealed.
-                        // Let's check if we can get spheres from useGame if needed, but `foundLetters` is what we have.
-                        // Actually, let's just show the letter if it's in `foundLetters`.
+                        const isFound = foundLetters.includes(letter); 
                         
                         return (
                             <div key={i} className={`
-                                w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border
+                                w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border transition-all duration-300
                                 ${isFound 
                                     ? 'bg-green-500/20 border-green-500 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]' 
-                                    : 'bg-gray-800/50 border-gray-700 text-gray-600'}
+                                    : 'bg-gray-800/40 border-gray-700/50 text-gray-600'}
                             `}>
                                 {isFound ? letter : '?'}
                             </div>
@@ -186,7 +239,7 @@ export default function WordleGame({ onStats }) {
             </div>
 
             {/* Modals */}
-            {statsOpen && <StatsModal stats={stats} onClose={() => setStatsOpen(false)} nextWordTime="08:45:44" />}
+            {statsOpen && <StatsModal stats={stats} onClose={() => setStatsOpen(false)} nextWordTime={timeLeft} />}
             {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onLogin={(u) => { setUser(u); loadStats(u.id); }} />}
         </div>
     );
