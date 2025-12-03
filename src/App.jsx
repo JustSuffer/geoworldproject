@@ -28,7 +28,7 @@ function AppContent() {
         <Route path="/play" element={
           <div className="relative z-10 w-full h-full flex flex-col pointer-events-none">
             {/* Top Navigation */}
-            <div className="absolute top-4 left-4 z-50">
+            <div className="absolute top-24 left-4 z-50">
               <Link 
                 to="/" 
                 className="flex items-center gap-2 px-4 py-2 bg-black/60 hover:bg-black/80 text-white rounded-full backdrop-blur-md transition-all border border-white/10 shadow-lg font-bold pointer-events-auto"

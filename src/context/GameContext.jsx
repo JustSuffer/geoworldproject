@@ -52,6 +52,10 @@ export function GameProvider({ children }) {
           setDailyWord(getRandomWord(gameLanguage));
           setSpheres([]); // Reset spheres for new word
           setFoundLetters([]);
+          setGuesses([]);
+          setCurrentGuess('');
+          setGameStatus('playing');
+          setIsGameStarted(true);
       }
   };
 
@@ -65,6 +69,10 @@ export function GameProvider({ children }) {
               setDailyWord(newWord);
               setSpheres([]); // Reset spheres
               setFoundLetters([]);
+              setGuesses([]);
+              setCurrentGuess('');
+              setGameStatus('playing');
+              setIsGameStarted(false); // Reset start status for new day? Or keep it? Maybe false to force "Play" again?
           }
       };
       
@@ -81,6 +89,35 @@ export function GameProvider({ children }) {
   const [startTime, setStartTime] = useState(Date.now());
   const [distanceWalked, setDistanceWalked] = useState(0);
   const [lastLocation, setLastLocation] = useState(null);
+
+  // Game Persistence State
+  const [guesses, setGuesses] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved ? JSON.parse(saved).guesses : [];
+  });
+  const [currentGuess, setCurrentGuess] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved ? JSON.parse(saved).currentGuess : '';
+  });
+  const [gameStatus, setGameStatus] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved ? JSON.parse(saved).gameStatus : 'playing';
+  });
+  const [isGameStarted, setIsGameStarted] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved ? JSON.parse(saved).isGameStarted : false;
+  });
+
+  // Save game state to local storage
+  useEffect(() => {
+      localStorage.setItem('gameState', JSON.stringify({
+          guesses,
+          currentGuess,
+          gameStatus,
+          isGameStarted,
+          savedWord: dailyWord
+      }));
+  }, [guesses, currentGuess, gameStatus, isGameStarted, dailyWord]);
 
   // Reset tracking on new game
   useEffect(() => {
@@ -123,6 +160,23 @@ export function GameProvider({ children }) {
 
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
+
+  // Validate saved state against current word
+  useEffect(() => {
+      if (!dailyWord) return;
+      
+      const saved = localStorage.getItem('gameState');
+      if (saved) {
+          const parsed = JSON.parse(saved);
+          // If saved word exists and is different from current dailyWord, reset
+          if (parsed.savedWord && parsed.savedWord !== dailyWord) {
+              setGuesses([]);
+              setCurrentGuess('');
+              setGameStatus('playing');
+              setIsGameStarted(false);
+          }
+      }
+  }, [dailyWord]);
 
   // Separate effect for distance calculation to handle state updates correctly
   useEffect(() => {
@@ -206,7 +260,16 @@ export function GameProvider({ children }) {
         setGameLanguage,
         newGame,
         startTime,
-        distanceWalked
+        distanceWalked,
+        // Game State for Persistence
+        guesses,
+        setGuesses,
+        currentGuess,
+        setCurrentGuess,
+        gameStatus,
+        setGameStatus,
+        isGameStarted,
+        setIsGameStarted
     }}>
       {children}
     </GameContext.Provider>

@@ -9,10 +9,10 @@ const WORD_LENGTH = 6;
 const MAX_GUESSES = 5; 
 
 export default function WordleGame({ onStats }) {
-    const { dailyWord, foundLetters, gameMode, newGame, startTime, distanceWalked } = useGame();
-    const [guesses, setGuesses] = useState([]);
-    const [currentGuess, setCurrentGuess] = useState('');
-    const [gameStatus, setGameStatus] = useState('playing'); // playing, won, lost
+    const { 
+        dailyWord, foundLetters, gameMode, newGame, startTime, distanceWalked,
+        guesses, setGuesses, currentGuess, setCurrentGuess, gameStatus, setGameStatus
+    } = useGame();
     const [statsOpen, setStatsOpen] = useState(false);
     const [authOpen, setAuthOpen] = useState(false);
     const [user, setUser] = useState(null);
@@ -30,11 +30,7 @@ export default function WordleGame({ onStats }) {
     });
 
     // Reset game when dailyWord changes (or mode changes)
-    useEffect(() => {
-        setGuesses([]);
-        setCurrentGuess('');
-        setGameStatus('playing');
-    }, [dailyWord]);
+    // Reset effect removed - handled in GameContext
 
     // Live Timer
     useEffect(() => {

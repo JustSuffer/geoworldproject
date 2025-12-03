@@ -9,22 +9,17 @@ import { useGame } from '../context/GameContext';
 export default function MainMenu({ onAuth }) {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const { setGameMode, setGameLanguage, newGame } = useGame();
+    const { setGameMode, setGameLanguage, newGame, isGameStarted, setIsGameStarted } = useGame();
     const [setupOpen, setSetupOpen] = useState(false);
 
     const handleGameStart = (mode, language) => {
         setGameMode(mode);
         setGameLanguage(language);
-        // If unlimited, we might want to ensure a new game starts or just let the effect handle it
-        // But since context updates are async-ish, let's navigate.
-        // Actually, newGame() in context might be needed if we are already in unlimited mode and want to restart, 
-        // but here we are coming from menu.
-        // Just setting state is enough, the GameContext effects will pick it up.
-        // Wait, if we switch from Daily TR to Daily EN, dailyWord updates.
-        
-        // Force a "new game" trigger if needed? 
-        // The context effect `[gameMode, gameLanguage]` handles word generation.
-        
+        setIsGameStarted(true);
+        navigate('/play');
+    };
+
+    const handleContinue = () => {
         navigate('/play');
     };
 
@@ -48,13 +43,23 @@ export default function MainMenu({ onAuth }) {
 
             {/* Menu Buttons */}
             <div className="relative z-10 flex flex-col gap-4 w-full max-w-xs">
-                <button 
-                    onClick={() => setSetupOpen(true)}
-                    className="group relative bg-primary hover:bg-red-700 text-white p-4 rounded-xl font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-[0_0_20px_rgba(178,11,11,0.4)] hover:shadow-[0_0_30px_rgba(178,11,11,0.6)] flex items-center justify-center gap-3"
-                >
-                    <Play className="w-6 h-6 fill-current" />
-                    {t('play')}
-                </button>
+                {isGameStarted ? (
+                    <button 
+                        onClick={handleContinue}
+                        className="group relative bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] flex items-center justify-center gap-3"
+                    >
+                        <Play className="w-6 h-6 fill-current" />
+                        {t('continue') || "CONTINUE"}
+                    </button>
+                ) : (
+                    <button 
+                        onClick={() => setSetupOpen(true)}
+                        className="group relative bg-primary hover:bg-red-700 text-white p-4 rounded-xl font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-[0_0_20px_rgba(178,11,11,0.4)] hover:shadow-[0_0_30px_rgba(178,11,11,0.6)] flex items-center justify-center gap-3"
+                    >
+                        <Play className="w-6 h-6 fill-current" />
+                        {t('play')}
+                    </button>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                     <Link 
