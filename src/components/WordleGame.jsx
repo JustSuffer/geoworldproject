@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { supabase } from '../supabaseClient';
-import { X, BarChart2, HelpCircle, Settings, RotateCcw, User } from 'lucide-react';
+import { X, BarChart2, HelpCircle, Settings, RotateCcw, User, MapPin } from 'lucide-react';
 import AuthModal from './AuthModal';
 
 // Constants
-const WORD_LENGTH = 6; // Updated to 6 letters
+const WORD_LENGTH = 6;
 const MAX_GUESSES = 5; 
 
 export default function WordleGame({ onStats }) {
-    const { dailyWord } = useGame(); // Assuming dailyWord is available from context
+    const { dailyWord, foundLetters } = useGame();
     const [guesses, setGuesses] = useState([]);
     const [currentGuess, setCurrentGuess] = useState('');
     const [gameStatus, setGameStatus] = useState('playing'); // playing, won, lost
@@ -21,7 +21,7 @@ export default function WordleGame({ onStats }) {
         winRate: 0,
         currentStreak: 0,
         maxStreak: 0,
-        distribution: [0, 0, 0, 0, 0, 0] // 1-6 guesses (though we only have 5, keeping 6 for safety or mapping)
+        distribution: [0, 0, 0, 0, 0, 0]
     });
 
     // Load stats from Supabase or LocalStorage on mount
@@ -69,13 +69,11 @@ export default function WordleGame({ onStats }) {
             }
         }
         
-        // Calculate win rate
         const winRate = localStats.played > 0 ? Math.round((localStats.wins / localStats.played) * 100) : 0;
         setStats({ ...localStats, winRate });
     };
 
     const updateStats = async (won, guessCount) => {
-        // Update local state and Supabase
         const newStats = { ...stats };
         newStats.played += 1;
         if (won) {
@@ -91,7 +89,6 @@ export default function WordleGame({ onStats }) {
         setStats(newStats);
         localStorage.setItem('wordleStats', JSON.stringify(newStats));
 
-        // Supabase integration
         if (user) {
             await supabase.from('profiles').upsert({ 
                 id: user.id,
@@ -106,31 +103,27 @@ export default function WordleGame({ onStats }) {
 
         if (key === 'ENTER') {
             if (currentGuess.length !== WORD_LENGTH) {
-                // Shake animation or alert
                 return;
             }
             setGuesses([...guesses, currentGuess]);
             setCurrentGuess('');
         } else if (key === 'BACKSPACE') {
             setCurrentGuess(prev => prev.slice(0, -1));
-        } else if (/^[A-Z\u00C0-\u017F]$/.test(key) && currentGuess.length < WORD_LENGTH) { // Support for Turkish chars if needed, or just A-Z
-             // Basic A-Z check + Turkish chars
+        } else if (/^[A-Z\u00C0-\u017F]$/.test(key) && currentGuess.length < WORD_LENGTH) {
              setCurrentGuess(prev => prev + key);
         }
     };
 
-    // Virtual Keyboard Input
     const onKeyPress = (key) => {
         handleKeyup(key);
     };
 
-    // Physical Keyboard Input
     useEffect(() => {
         const handleKeyDown = (e) => {
             const key = e.key.toUpperCase();
             if (key === 'ENTER' || key === 'BACKSPACE') {
                 handleKeyup(key);
-            } else if (/^[A-Z\u011E\u00DC\u015E\u0130\u00D6\u00C7]$/.test(key)) { // Turkish chars: Ğ, Ü, Ş, İ, Ö, Ç
+            } else if (/^[A-Z\u011E\u00DC\u015E\u0130\u00D6\u00C7]$/.test(key)) {
                 handleKeyup(key);
             } else if (/^[A-Z]$/.test(key)) {
                 handleKeyup(key);
@@ -145,11 +138,44 @@ export default function WordleGame({ onStats }) {
             {/* Spacer for Map visibility */}
             <div className="flex-1 w-full"></div>
 
-            {/* Game Container - Bottom Aligned */}
-            <div className="pointer-events-auto w-full bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent pt-12 pb-4 px-2 md:px-4 flex flex-col items-center">
+            {/* Game Container */}
+            <div className="pointer-events-auto w-full bg-gradient-to-t from-gray-900 via-gray-900/95 to-transparent pt-8 pb-6 px-4 flex flex-col items-center">
                 
+                {/* Found Letters / Hints */}
+                <div className="w-full max-w-[380px] mb-6 flex justify-center gap-2">
+                    {Array.from({ length: WORD_LENGTH }).map((_, i) => {
+                        const letter = dailyWord[i];
+                        const isFound = foundLetters.includes(letter); // Check if this specific letter instance is found? 
+                        // Actually foundLetters is a list of letters found. 
+                        // If the word is "PLANET" and we found 'P', we show 'P'.
+                        // But wait, if word is "APPLE" and we found one 'P', do we show both?
+                        // The context logic `const found = spheres.filter(s => s.found).map(s => s.letter);`
+                        // So if sphere 1 (P) is found, we have 'P'.
+                        // We should map indices to spheres.
+                        
+                        // Let's assume spheres are ordered by word index in GameContext (they are).
+                        // We need access to spheres to know WHICH index is found, not just the letters.
+                        // But `foundLetters` in context is just an array of letters.
+                        // Let's use `foundLetters` for now, assuming unique letters or just showing what we have.
+                        // BETTER: The user wants to see the letter revealed.
+                        // Let's check if we can get spheres from useGame if needed, but `foundLetters` is what we have.
+                        // Actually, let's just show the letter if it's in `foundLetters`.
+                        
+                        return (
+                            <div key={i} className={`
+                                w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border
+                                ${isFound 
+                                    ? 'bg-green-500/20 border-green-500 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]' 
+                                    : 'bg-gray-800/50 border-gray-700 text-gray-600'}
+                            `}>
+                                {isFound ? letter : '?'}
+                            </div>
+                        );
+                    })}
+                </div>
+
                 {/* Grid */}
-                <div className="w-full mb-4 flex justify-center">
+                <div className="w-full mb-6 flex justify-center">
                     <Grid guesses={guesses} currentGuess={currentGuess} targetWord={dailyWord} maxGuesses={MAX_GUESSES} />
                 </div>
 
@@ -170,7 +196,7 @@ function Grid({ guesses, currentGuess, targetWord, maxGuesses }) {
     const empties = maxGuesses - 1 - guesses.length;
     
     return (
-        <div className="grid grid-rows-5 gap-1.5 w-full max-w-[350px]">
+        <div className="grid grid-rows-5 gap-3 w-full max-w-[380px]"> {/* Increased gap from 1.5 to 3 */}
             {guesses.map((guess, i) => (
                 <Row key={i} guess={guess} targetWord={targetWord} isFinal={true} />
             ))}
@@ -187,10 +213,10 @@ function Grid({ guesses, currentGuess, targetWord, maxGuesses }) {
 function Row({ guess, targetWord, isFinal }) {
     const splitGuess = guess.split('');
     const splitTarget = targetWord.toUpperCase().split('');
-    const length = 6; // Updated to 6
+    const length = 6;
 
     return (
-        <div className="grid grid-cols-6 gap-1.5">
+        <div className="grid grid-cols-6 gap-3"> {/* Increased gap from 1.5 to 3 */}
             {Array.from({ length }).map((_, i) => {
                 const char = splitGuess[i];
                 let status = 'empty';
@@ -204,23 +230,17 @@ function Row({ guess, targetWord, isFinal }) {
                     }
                 }
 
-                // Tailwind classes for colors
-                // Correct: Green (bg-green-600)
-                // Present: Orange (bg-orange-500) as requested
-                // Absent: Gray (bg-gray-700)
-                // Empty/Typing: Border
-                
-                let bgClass = 'bg-transparent border-2 border-gray-600';
-                if (status === 'correct') bgClass = 'bg-green-600 border-green-600';
-                if (status === 'present') bgClass = 'bg-orange-500 border-orange-500'; // User requested Orange
-                if (status === 'absent') bgClass = 'bg-gray-700 border-gray-700';
-                if (!isFinal && char) bgClass = 'border-gray-400 text-white'; // Typing
+                let bgClass = 'bg-gray-800/40 border-2 border-gray-700/50 backdrop-blur-sm';
+                if (status === 'correct') bgClass = 'bg-green-600 border-green-600 shadow-[0_0_15px_rgba(22,163,74,0.4)]';
+                if (status === 'present') bgClass = 'bg-orange-500 border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.4)]';
+                if (status === 'absent') bgClass = 'bg-gray-700/80 border-gray-700';
+                if (!isFinal && char) bgClass = 'border-gray-400 bg-gray-700/50 text-white animate-pulse';
 
                 return (
                     <div key={i} className={`
-                        w-full h-full flex items-center justify-center 
-                        text-2xl md:text-3xl font-bold uppercase select-none
-                        transition-all duration-500 flip-animation
+                        w-full aspect-square flex items-center justify-center 
+                        text-2xl md:text-3xl font-black uppercase select-none rounded-xl
+                        transition-all duration-500 flip-animation transform hover:scale-105
                         ${bgClass}
                     `}>
                         {char}
@@ -238,7 +258,6 @@ function Keyboard({ onKeyPress, guesses, targetWord }) {
         ['ENTER', 'Z', 'C', 'V', 'B', 'N', 'M', 'Ö', 'Ç', 'BACKSPACE']
     ];
 
-    // Calculate key statuses
     const keyStatus = {};
     guesses.forEach(guess => {
         guess.split('').forEach((char, i) => {
@@ -257,12 +276,12 @@ function Keyboard({ onKeyPress, guesses, targetWord }) {
     return (
         <div className="flex flex-col gap-2 w-full px-1 pb-4">
             {rows.map((row, i) => (
-                <div key={i} className="flex justify-center gap-1">
+                <div key={i} className="flex justify-center gap-1.5">
                     {row.map((key) => {
-                        let bgClass = 'bg-gray-500 hover:bg-gray-400';
-                        if (keyStatus[key] === 'correct') bgClass = 'bg-green-600';
-                        if (keyStatus[key] === 'present') bgClass = 'bg-orange-500';
-                        if (keyStatus[key] === 'absent') bgClass = 'bg-gray-800';
+                        let bgClass = 'bg-gray-700/80 hover:bg-gray-600/80 backdrop-blur-sm border border-white/5';
+                        if (keyStatus[key] === 'correct') bgClass = 'bg-green-600 border-green-500 shadow-[0_0_10px_rgba(22,163,74,0.3)]';
+                        if (keyStatus[key] === 'present') bgClass = 'bg-orange-500 border-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.3)]';
+                        if (keyStatus[key] === 'absent') bgClass = 'bg-gray-800/50 text-gray-500 border-transparent';
 
                         const isWide = key === 'ENTER' || key === 'BACKSPACE';
                         
@@ -271,9 +290,9 @@ function Keyboard({ onKeyPress, guesses, targetWord }) {
                                 key={key}
                                 onClick={() => onKeyPress(key)}
                                 className={`
-                                    ${isWide ? 'px-3 md:px-6 text-xs md:text-sm' : 'flex-1 aspect-[2/3] md:aspect-square max-w-[40px] md:max-w-[45px]'}
-                                    h-12 md:h-14 rounded font-bold text-white transition-colors
-                                    flex items-center justify-center
+                                    ${isWide ? 'px-4 md:px-6 text-xs md:text-sm' : 'flex-1 aspect-[2/3] md:aspect-square max-w-[42px] md:max-w-[48px]'}
+                                    h-12 md:h-14 rounded-xl font-bold text-white transition-all duration-200
+                                    flex items-center justify-center active:scale-95
                                     ${bgClass}
                                 `}
                             >

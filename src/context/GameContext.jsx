@@ -56,10 +56,13 @@ export function GameProvider({ children }) {
       (error) => {
         console.error("Error watching position:", error);
         setLoading(false);
-        // For testing purposes, if geolocation fails, maybe set a default location?
-        // setUserLocation([41.0, 29.0]); // Istanbul
+        // Fallback or alert user
       },
-      { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+      { 
+          enableHighAccuracy: true, 
+          maximumAge: 0, // Force fresh location
+          timeout: 20000 // Increased timeout to 20s
+      }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
