@@ -1,7 +1,12 @@
 import React from 'react';
 import { Play, BarChart2, Settings, HelpCircle, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from './LanguageSelector';
 
-export default function MainMenu({ onPlay, onStats, onAuth }) {
+export default function MainMenu({ onAuth }) {
+    const { t } = useTranslation();
+
     return (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gray-900/95 backdrop-blur-sm text-white p-4">
             {/* Background Effects */}
@@ -22,47 +27,52 @@ export default function MainMenu({ onPlay, onStats, onAuth }) {
 
             {/* Menu Buttons */}
             <div className="relative z-10 flex flex-col gap-4 w-full max-w-xs">
-                <button 
-                    onClick={onPlay}
+                <Link 
+                    to="/play"
                     className="group relative bg-primary hover:bg-red-700 text-white p-4 rounded-xl font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-[0_0_20px_rgba(178,11,11,0.4)] hover:shadow-[0_0_30px_rgba(178,11,11,0.6)] flex items-center justify-center gap-3"
                 >
                     <Play className="w-6 h-6 fill-current" />
-                    PLAY
-                </button>
+                    {t('play')}
+                </Link>
 
                 <div className="grid grid-cols-2 gap-4">
-                    <button 
-                        onClick={onStats}
+                    <Link 
+                        to="/statistics"
                         className="bg-gray-800 hover:bg-gray-700 text-white p-4 rounded-xl font-bold transition-all duration-300 hover:scale-105 flex flex-col items-center justify-center gap-2"
                     >
                         <BarChart2 className="w-6 h-6" />
-                        <span className="text-xs">STATISTICS</span>
-                    </button>
+                        <span className="text-xs">{t('statistics')}</span>
+                    </Link>
                     
-                    <button 
+                    <Link 
+                        to="/settings"
                         className="bg-gray-800 hover:bg-gray-700 text-white p-4 rounded-xl font-bold transition-all duration-300 hover:scale-105 flex flex-col items-center justify-center gap-2"
                     >
                         <Settings className="w-6 h-6" />
-                        <span className="text-xs">SETTINGS</span>
-                    </button>
+                        <span className="text-xs">{t('settings')}</span>
+                    </Link>
                 </div>
 
-                <button 
+                <Link 
+                    to="/howtoplay"
                     className="bg-gray-800 hover:bg-gray-700 text-white p-4 rounded-xl font-bold transition-all duration-300 hover:scale-105 flex items-center justify-center gap-3"
                 >
                     <HelpCircle className="w-6 h-6" />
-                    HOW TO PLAY
-                </button>
+                    {t('howToPlay')}
+                </Link>
             </div>
 
-            {/* Auth Button (Top Right) */}
-            <button 
-                onClick={onAuth}
-                className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors backdrop-blur-md"
-                title="Sign Up / Login"
-            >
-                <User className="w-6 h-6" />
-            </button>
+            {/* Top Right Controls */}
+            <div className="absolute top-6 right-6 flex items-center gap-4">
+                <LanguageSelector />
+                <button 
+                    onClick={onAuth}
+                    className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors backdrop-blur-md"
+                    title="Sign Up / Login"
+                >
+                    <User className="w-6 h-6" />
+                </button>
+            </div>
 
             {/* Footer */}
             <div className="absolute bottom-8 text-white/30 text-sm">
