@@ -182,44 +182,44 @@ export default function WordleGame({ onStats }) {
 
             {/* Game Container */}
             <div className={`
-                pointer-events-auto w-full bg-gradient-to-t from-gray-900/90 via-gray-900/80 to-transparent pt-8 pb-6 px-4 flex flex-col items-center transition-all duration-500 transform
+                pointer-events-auto w-full bg-gray-900/95 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] pt-8 pb-6 px-4 flex flex-col items-center transition-all duration-500 transform rounded-t-3xl
                 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
             `}>
                 
                 {/* Header Info (Timer or Play Again) */}
-                <div className="w-full max-w-[380px] mb-4 flex justify-between items-center text-white/80 text-sm font-bold">
+                <div className="w-full max-w-[380px] mb-4 flex justify-between items-center text-white font-bold bg-black/40 p-3 rounded-xl border border-white/5">
                     {gameMode === 'daily' ? (
                         <div className="flex items-center gap-2">
-                            <span>NEXT WORD:</span>
-                            <span className="text-primary">{timeLeft}</span>
+                            <span className="text-gray-400 text-xs">NEXT WORD:</span>
+                            <span className="text-primary text-lg font-mono">{timeLeft}</span>
                         </div>
                     ) : (
                         <button 
                             onClick={newGame}
-                            className="flex items-center gap-2 bg-primary hover:bg-red-700 px-3 py-1 rounded-lg text-white transition-colors"
+                            className="flex items-center gap-2 bg-primary hover:bg-red-700 px-4 py-2 rounded-lg text-white transition-colors shadow-lg shadow-red-900/20"
                         >
                             <RefreshCw className="w-4 h-4" />
                             NEW WORD
                         </button>
                     )}
                     
-                    <div className="text-xs uppercase tracking-wider opacity-50">
+                    <div className="text-xs uppercase tracking-wider text-gray-400 font-semibold">
                         {gameMode === 'daily' ? 'DAILY CHALLENGE' : 'UNLIMITED MODE'}
                     </div>
                 </div>
 
                 {/* Found Letters / Hints */}
-                <div className="w-full max-w-[380px] mb-6 flex justify-center gap-2">
+                <div className="w-full max-w-[380px] mb-6 flex justify-center gap-2 bg-black/20 p-4 rounded-2xl border border-white/5">
                     {Array.from({ length: WORD_LENGTH }).map((_, i) => {
                         const letter = dailyWord[i];
                         const isFound = foundLetters.includes(letter); 
                         
                         return (
                             <div key={i} className={`
-                                w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border transition-all duration-300
+                                w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold border-2 transition-all duration-300
                                 ${isFound 
-                                    ? 'bg-green-500/20 border-green-500 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]' 
-                                    : 'bg-gray-800/40 border-gray-700/50 text-gray-600'}
+                                    ? 'bg-green-500 border-green-400 text-white shadow-[0_0_15px_rgba(34,197,94,0.5)] transform scale-110' 
+                                    : 'bg-gray-800 border-gray-700 text-gray-600'}
                             `}>
                                 {isFound ? letter : '?'}
                             </div>
@@ -249,7 +249,7 @@ function Grid({ guesses, currentGuess, targetWord, maxGuesses }) {
     const empties = maxGuesses - 1 - guesses.length;
     
     return (
-        <div className="grid grid-rows-5 gap-3 w-full max-w-[380px]"> {/* Increased gap from 1.5 to 3 */}
+        <div className="grid grid-rows-5 gap-2 w-full max-w-[380px]">
             {guesses.map((guess, i) => (
                 <Row key={i} guess={guess} targetWord={targetWord} isFinal={true} />
             ))}
@@ -269,7 +269,7 @@ function Row({ guess, targetWord, isFinal }) {
     const length = 6;
 
     return (
-        <div className="grid grid-cols-6 gap-3"> {/* Increased gap from 1.5 to 3 */}
+        <div className="grid grid-cols-6 gap-2">
             {Array.from({ length }).map((_, i) => {
                 const char = splitGuess[i];
                 let status = 'empty';
@@ -283,17 +283,17 @@ function Row({ guess, targetWord, isFinal }) {
                     }
                 }
 
-                let bgClass = 'bg-gray-800/40 border-2 border-gray-700/50 backdrop-blur-sm';
-                if (status === 'correct') bgClass = 'bg-green-600 border-green-600 shadow-[0_0_15px_rgba(22,163,74,0.4)]';
-                if (status === 'present') bgClass = 'bg-orange-500 border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.4)]';
-                if (status === 'absent') bgClass = 'bg-gray-700/80 border-gray-700';
-                if (!isFinal && char) bgClass = 'border-gray-400 bg-gray-700/50 text-white animate-pulse';
+                let bgClass = 'bg-gray-800 border-2 border-gray-700';
+                if (status === 'correct') bgClass = 'bg-green-600 border-green-500 shadow-[0_0_20px_rgba(22,163,74,0.6)] z-10';
+                if (status === 'present') bgClass = 'bg-orange-500 border-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.6)] z-10';
+                if (status === 'absent') bgClass = 'bg-gray-700 border-gray-600 opacity-80';
+                if (!isFinal && char) bgClass = 'border-gray-400 bg-gray-700 text-white shadow-[0_0_10px_rgba(255,255,255,0.2)]';
 
                 return (
                     <div key={i} className={`
                         w-full aspect-square flex items-center justify-center 
-                        text-2xl md:text-3xl font-black uppercase select-none rounded-xl
-                        transition-all duration-500 flip-animation transform hover:scale-105
+                        text-2xl md:text-3xl font-black uppercase select-none rounded-lg
+                        transition-all duration-300 flip-animation transform
                         ${bgClass}
                     `}>
                         {char}
