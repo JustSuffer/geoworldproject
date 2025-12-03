@@ -59,6 +59,16 @@ export function GameProvider({ children }) {
       }
   };
 
+  const resetGame = () => {
+      setGuesses([]);
+      setCurrentGuess('');
+      setGameStatus('playing');
+      setFoundLetters([]);
+      setSpheres([]);
+      // We don't necessarily change dailyWord here, as it depends on mode/lang
+      // But clearing spheres will trigger regeneration
+  };
+
   // Update daily word at midnight if in daily mode
   useEffect(() => {
       if (gameMode !== 'daily') return;
@@ -269,7 +279,8 @@ export function GameProvider({ children }) {
         gameStatus,
         setGameStatus,
         isGameStarted,
-        setIsGameStarted
+        setIsGameStarted,
+        resetGame
     }}>
       {children}
     </GameContext.Provider>

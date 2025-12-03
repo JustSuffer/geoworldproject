@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { supabase } from '../supabaseClient';
-import { X, BarChart2, HelpCircle, Settings, RotateCcw, User, MapPin, Eye, EyeOff, RefreshCw, Activity } from 'lucide-react';
+import { X, BarChart2, HelpCircle, Settings, RotateCcw, User, MapPin, Eye, EyeOff, RefreshCw, Activity, Share2, Home, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AuthModal from './AuthModal';
 
 // Constants
@@ -286,7 +288,16 @@ export default function WordleGame({ onStats }) {
             </div>
 
             {/* Modals */}
-            {statsOpen && <StatsModal stats={stats} onClose={() => setStatsOpen(false)} nextWordTime={timeLeft} />}
+            {statsOpen && (
+                <StatsModal 
+                    stats={stats} 
+                    onClose={() => setStatsOpen(false)} 
+                    nextWordTime={timeLeft} 
+                    gameLanguage={useGame().gameLanguage}
+                    guesses={guesses}
+                    dailyWord={dailyWord}
+                />
+            )}
             {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onLogin={(u) => { setUser(u); loadStats(u.id); }} />}
         </div>
     );
@@ -406,63 +417,126 @@ function Keyboard({ onKeyPress, guesses, targetWord }) {
     );
 }
 
-function StatsModal({ stats, onClose, nextWordTime }) {
+function StatsModal({ stats, onClose, nextWordTime, gameLanguage, guesses, dailyWord }) {
+    const navigate = useNavigate();
+    const { t } = useTranslation();
+    const [copied, setCopied] = useState(false);
+
+    const handleShare = async () => {
+        const grid = guesses.map(guess => {
+            return guess.split('').map((char, i) => {
+                if (char === dailyWord[i]) return '🟩';
+                if (dailyWord.includes(char)) return '🟨';
+                return '⬛';
+            }).join('');
+        }).join('\n');
+
+        const title = "GeoWord Quest";
+        const score = guesses[guesses.length - 1] === dailyWord ? guesses.length : 'X';
+        const text = `${title} ${score}/6\n\n${grid}`;
+
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-[#121213] text-white p-6 rounded-lg shadow-2xl w-full max-w-sm relative border border-gray-700">
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white">
-                    <X />
+        <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/90 backdrop-blur-md p-4 animate-in fade-in duration-300"
+            onClick={onClose}
+        >
+            <div 
+                className="bg-gray-900 text-white p-8 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-md relative border border-white/10 overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Decorative Background Elements */}
+                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-red-500"></div>
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/20 rounded-full blur-3xl"></div>
+                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-600/20 rounded-full blur-3xl"></div>
+
+                <button 
+                    onClick={onClose} 
+                    className="absolute top-6 right-6 p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+                >
+                    <X className="w-5 h-5" />
                 </button>
                 
-                <h2 className="text-center font-bold mb-6">İSTATİSTİK</h2>
+                <h2 className="text-center text-2xl font-black tracking-tight mb-8 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                    {t('statistics') || 'STATISTICS'}
+                </h2>
                 
-                <div className="flex justify-between mb-8 text-center">
-                    <div className="flex flex-col items-center">
-                        <span className="text-2xl md:text-3xl font-bold">{stats.played}</span>
-                        <span className="text-xs text-gray-400">Oynanan</span>
+                <div className="grid grid-cols-4 gap-4 mb-8">
+                    <div className="flex flex-col items-center p-3 bg-white/5 rounded-2xl border border-white/5">
+                        <span className="text-2xl md:text-3xl font-bold text-white">{stats.played}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-gray-400 mt-1">Played</span>
                     </div>
-                    <div className="flex flex-col items-center">
-                        <span className="text-2xl md:text-3xl font-bold">{stats.winRate}</span>
-                        <span className="text-xs text-gray-400">Galibiyet %</span>
+                    <div className="flex flex-col items-center p-3 bg-white/5 rounded-2xl border border-white/5">
+                        <span className="text-2xl md:text-3xl font-bold text-green-400">{stats.winRate}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-gray-400 mt-1">Win %</span>
                     </div>
-                    <div className="flex flex-col items-center">
-                        <span className="text-2xl md:text-3xl font-bold">{stats.currentStreak}</span>
-                        <span className="text-xs text-gray-400">Seri</span>
+                    <div className="flex flex-col items-center p-3 bg-white/5 rounded-2xl border border-white/5">
+                        <span className="text-2xl md:text-3xl font-bold text-blue-400">{stats.currentStreak}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-gray-400 mt-1">Streak</span>
                     </div>
-                    <div className="flex flex-col items-center">
-                        <span className="text-2xl md:text-3xl font-bold">{stats.maxStreak}</span>
-                        <span className="text-xs text-gray-400">Max Seri</span>
+                    <div className="flex flex-col items-center p-3 bg-white/5 rounded-2xl border border-white/5">
+                        <span className="text-2xl md:text-3xl font-bold text-purple-400">{stats.maxStreak}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-gray-400 mt-1">Max</span>
                     </div>
                 </div>
 
-                <h3 className="font-bold mb-3">TAHMİN DAĞILIMI</h3>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Guess Distribution</h3>
                 <div className="flex flex-col gap-2 mb-8">
                     {[1, 2, 3, 4, 5].map((num) => {
                         const count = stats.distribution[num] || 0;
                         const max = Math.max(...Object.values(stats.distribution), 1);
-                        const width = Math.max((count / max) * 100, 7); // Min width for visibility
+                        const width = Math.max((count / max) * 100, 7);
                         
                         return (
-                            <div key={num} className="flex items-center gap-2">
-                                <span className="w-2 text-xs">{num}</span>
-                                <div 
-                                    className={`h-5 flex items-center justify-end px-2 text-xs font-bold ${count > 0 ? 'bg-green-600' : 'bg-gray-700'}`}
-                                    style={{ width: `${width}%` }}
-                                >
-                                    {count}
+                            <div key={num} className="flex items-center gap-3">
+                                <span className="w-3 text-xs font-mono text-gray-500">{num}</span>
+                                <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                                    <div 
+                                        className={`h-full rounded-full transition-all duration-500 ${count > 0 ? 'bg-gradient-to-r from-green-500 to-emerald-400' : 'bg-transparent'}`}
+                                        style={{ width: `${width}%` }}
+                                    ></div>
                                 </div>
+                                <span className="w-6 text-xs text-right font-bold text-gray-300">{count}</span>
                             </div>
                         );
                     })}
                 </div>
 
-                <div className="flex justify-between items-center pt-4 border-t border-gray-700">
-                    <div className="flex flex-col items-center">
-                        <span className="text-xs font-bold text-gray-400">SONRAKİ WORDLE</span>
-                        <span className="text-xl md:text-2xl font-bold">{nextWordTime}</span>
+                <div className="flex flex-col gap-3 pt-6 border-t border-white/10">
+                    <div className="flex justify-between items-center mb-2">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Next Wordle</span>
+                            <span className="text-xl font-mono font-bold text-white">{nextWordTime}</span>
+                        </div>
+                        <button 
+                            onClick={handleShare}
+                            className={`
+                                px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all hover:scale-105 active:scale-95
+                                ${copied ? 'bg-white text-green-600' : 'bg-green-600 hover:bg-green-500 text-white shadow-green-900/20'}
+                            `}
+                        >
+                            {copied ? <Check className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
+                            {copied 
+                                ? (gameLanguage === 'tr' ? 'KOPYALANDI' : 'COPIED') 
+                                : (gameLanguage === 'tr' ? 'PAYLAŞ' : 'SHARE')
+                            }
+                        </button>
                     </div>
-                    <button className="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded font-bold flex items-center gap-2">
-                        PAYLAŞ <span className="text-xl">share</span>
+                    
+                    <button 
+                        onClick={() => navigate('/')}
+                        className="w-full bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all border border-white/5 hover:border-white/20"
+                    >
+                        <Home className="w-5 h-5" />
+                        {gameLanguage === 'tr' ? 'ANA MENÜ' : 'MAIN MENU'}
                     </button>
                 </div>
             </div>
