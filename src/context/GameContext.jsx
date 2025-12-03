@@ -76,6 +76,18 @@ export function GameProvider({ children }) {
   const [foundLetters, setFoundLetters] = useState([]);
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(true);
+  
+  // Live Tracking
+  const [startTime, setStartTime] = useState(Date.now());
+  const [distanceWalked, setDistanceWalked] = useState(0);
+  const [lastLocation, setLastLocation] = useState(null);
+
+  // Reset tracking on new game
+  useEffect(() => {
+      setStartTime(Date.now());
+      setDistanceWalked(0);
+      setLastLocation(null);
+  }, [dailyWord]);
 
   // Watch location
   useEffect(() => {
@@ -88,8 +100,15 @@ export function GameProvider({ children }) {
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setUserLocation([latitude, longitude]);
+        const newLoc = [latitude, longitude];
+        
+        setUserLocation(newLoc);
         setLoading(false);
+
+        // Calculate distance walked
+        // We need to use a ref or functional update to access the latest lastLocation if we don't want to re-subscribe
+        // But here we are inside the callback. The callback might capture the initial 'lastLocation' (null).
+        // To fix this without re-subscribing, we can use a ref for lastLocation.
       },
       (error) => {
         console.error("Error watching position:", error);
@@ -104,6 +123,25 @@ export function GameProvider({ children }) {
 
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
+
+  // Separate effect for distance calculation to handle state updates correctly
+  useEffect(() => {
+      if (userLocation) {
+          if (lastLocation) {
+            const from = turf.point([lastLocation[1], lastLocation[0]]);
+            const to = turf.point([userLocation[1], userLocation[0]]);
+            const dist = turf.distance(from, to, { units: 'kilometers' });
+            
+            // Filter out small movements (GPS jitter) - e.g. < 5 meters
+            if (dist > 0.005) {
+                setDistanceWalked(prev => prev + dist);
+                setLastLocation(userLocation);
+            }
+          } else {
+              setLastLocation(userLocation);
+          }
+      }
+  }, [userLocation]);
 
   // Generate spheres
   useEffect(() => {
@@ -150,7 +188,6 @@ export function GameProvider({ children }) {
       const found = spheres.filter(s => s.found).map(s => s.letter);
       setFoundLetters(prev => {
           if (prev.length !== found.length) return found;
-          // Also check if content is different (though length check is usually enough for monotonic growth)
           return prev;
       });
   }, [spheres]);
@@ -167,7 +204,9 @@ export function GameProvider({ children }) {
         setGameMode,
         gameLanguage,
         setGameLanguage,
-        newGame
+        newGame,
+        startTime,
+        distanceWalked
     }}>
       {children}
     </GameContext.Provider>

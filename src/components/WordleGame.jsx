@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { supabase } from '../supabaseClient';
-import { X, BarChart2, HelpCircle, Settings, RotateCcw, User, MapPin, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { X, BarChart2, HelpCircle, Settings, RotateCcw, User, MapPin, Eye, EyeOff, RefreshCw, Activity } from 'lucide-react';
 import AuthModal from './AuthModal';
 
 // Constants
@@ -9,7 +9,7 @@ const WORD_LENGTH = 6;
 const MAX_GUESSES = 5; 
 
 export default function WordleGame({ onStats }) {
-    const { dailyWord, foundLetters, gameMode, newGame } = useGame();
+    const { dailyWord, foundLetters, gameMode, newGame, startTime, distanceWalked } = useGame();
     const [guesses, setGuesses] = useState([]);
     const [currentGuess, setCurrentGuess] = useState('');
     const [gameStatus, setGameStatus] = useState('playing'); // playing, won, lost
@@ -18,6 +18,8 @@ export default function WordleGame({ onStats }) {
     const [user, setUser] = useState(null);
     const [isVisible, setIsVisible] = useState(true);
     const [timeLeft, setTimeLeft] = useState('');
+    const [elapsedTime, setElapsedTime] = useState('00:00:00');
+    const [showLiveStats, setShowLiveStats] = useState(false);
     
     const [stats, setStats] = useState({
         played: 0,
@@ -33,6 +35,24 @@ export default function WordleGame({ onStats }) {
         setCurrentGuess('');
         setGameStatus('playing');
     }, [dailyWord]);
+
+    // Live Timer
+    useEffect(() => {
+        if (gameStatus !== 'playing') return;
+
+        const updateElapsed = () => {
+            const now = Date.now();
+            const diff = now - startTime;
+            const h = Math.floor(diff / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+            setElapsedTime(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+        };
+
+        const interval = setInterval(updateElapsed, 1000);
+        updateElapsed();
+        return () => clearInterval(interval);
+    }, [startTime, gameStatus]);
 
     // Timer for Daily Mode
     useEffect(() => {
@@ -168,14 +188,45 @@ export default function WordleGame({ onStats }) {
 
     return (
         <div className="flex flex-col items-center justify-between h-full w-full max-w-lg mx-auto pointer-events-none">
-            {/* Visibility Toggle Button */}
-            <button 
-                onClick={() => setIsVisible(!isVisible)}
-                className="pointer-events-auto absolute top-4 right-4 p-3 bg-gray-900/80 hover:bg-gray-800 text-white rounded-full backdrop-blur-md z-50 transition-all"
-                title={isVisible ? "Hide Game" : "Show Game"}
-            >
-                {isVisible ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
-            </button>
+            {/* Top Right Controls */}
+            <div className="pointer-events-auto absolute top-4 right-4 flex items-center gap-2 z-50">
+                {/* Live Stats Button */}
+                <div className="relative">
+                    <button 
+                        onClick={() => setShowLiveStats(!showLiveStats)}
+                        className={`p-3 rounded-full backdrop-blur-md transition-all border border-white/10 shadow-lg ${showLiveStats ? 'bg-primary text-white' : 'bg-gray-900/80 hover:bg-gray-800 text-white'}`}
+                        title="Live Stats"
+                    >
+                        <Activity className="w-6 h-6" />
+                    </button>
+                    
+                    {/* Live Stats Popover */}
+                    {showLiveStats && (
+                        <div className="absolute top-14 right-0 w-48 bg-gray-900/95 border border-white/10 rounded-xl p-4 shadow-2xl backdrop-blur-md text-white">
+                            <div className="flex flex-col gap-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-400 text-xs uppercase">Time</span>
+                                    <span className="font-mono font-bold text-lg text-primary">{elapsedTime}</span>
+                                </div>
+                                <div className="h-px bg-white/10"></div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-400 text-xs uppercase">Distance</span>
+                                    <span className="font-mono font-bold text-lg text-green-400">{distanceWalked.toFixed(2)} km</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Visibility Toggle Button */}
+                <button 
+                    onClick={() => setIsVisible(!isVisible)}
+                    className="p-3 bg-gray-900/80 hover:bg-gray-800 text-white rounded-full backdrop-blur-md border border-white/10 shadow-lg transition-all"
+                    title={isVisible ? "Hide Game" : "Show Game"}
+                >
+                    {isVisible ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
+                </button>
+            </div>
 
             {/* Spacer for Map visibility */}
             <div className="flex-1 w-full"></div>
