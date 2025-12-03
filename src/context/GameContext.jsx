@@ -6,34 +6,72 @@ const GameContext = createContext();
 
 export function GameProvider({ children }) {
   const [userLocation, setUserLocation] = useState(null);
-  // 6-letter Turkish words pool
-  const WORDS = [
-    "PLANET", "KARTAL", "BASKET", "KAPTAN", "MARKET", "PARKUR", 
-    "SISTEM", "DOKTOR", "MANTAR", "KANTAR", "SANYIE", "KORFEZ"
+  const [gameMode, setGameMode] = useState('daily'); // 'daily' or 'unlimited'
+  const [gameLanguage, setGameLanguage] = useState('tr'); // 'tr' or 'en'
+  
+  // Word Pools
+  const WORDS_TR = [
+    "KARTAL", "BASKET", "KAPTAN", "MARKET", "PARKUR", 
+    "SISTEM", "DOKTOR", "MANTAR", "KANTAR", "SANYIE", "KORFEZ", "DEPREM", "SIMSEK", "YAGMUR"
+  ];
+  
+  const WORDS_EN = [
+    "PLANET", "ROCKET", "MARKET", "DOCTOR", "SYSTEM", 
+    "FOREST", "ISLAND", "GARDEN", "TRAVEL", "WINTER", "SUMMER", "NATURE", "ENERGY"
   ];
 
-  const getDailyWord = () => {
+  const getDailyWord = (lang) => {
+    const pool = lang === 'en' ? WORDS_EN : WORDS_TR;
     const epochMs = new Date(2024, 0, 1).valueOf();
     const now = Date.now();
     const msPerDay = 86400000;
-    const index = Math.floor((now - epochMs) / msPerDay) % WORDS.length;
-    return WORDS[index];
+    const index = Math.floor((now - epochMs) / msPerDay) % pool.length;
+    return pool[index];
   };
 
-  const [dailyWord, setDailyWord] = useState(getDailyWord());
+  const getRandomWord = (lang) => {
+    const pool = lang === 'en' ? WORDS_EN : WORDS_TR;
+    return pool[Math.floor(Math.random() * pool.length)];
+  };
 
-  // Update word at midnight
+  const [dailyWord, setDailyWord] = useState("");
+  
+  // Initialize word based on mode and language
   useEffect(() => {
+      if (gameMode === 'daily') {
+          setDailyWord(getDailyWord(gameLanguage));
+      } else {
+          // For unlimited, we might want to trigger this manually or on mount
+          // If it's empty, set it. If we switch modes, reset it.
+          setDailyWord(getRandomWord(gameLanguage));
+      }
+  }, [gameMode, gameLanguage]);
+
+  const newGame = () => {
+      if (gameMode === 'unlimited') {
+          setDailyWord(getRandomWord(gameLanguage));
+          setSpheres([]); // Reset spheres for new word
+          setFoundLetters([]);
+      }
+  };
+
+  // Update daily word at midnight if in daily mode
+  useEffect(() => {
+      if (gameMode !== 'daily') return;
+
       const checkMidnight = () => {
-          const newWord = getDailyWord();
+          const newWord = getDailyWord(gameLanguage);
           if (newWord !== dailyWord) {
               setDailyWord(newWord);
+              setSpheres([]); // Reset spheres
+              setFoundLetters([]);
           }
       };
       
-      const interval = setInterval(checkMidnight, 60000); // Check every minute
+      const interval = setInterval(checkMidnight, 60000);
       return () => clearInterval(interval);
-  }, [dailyWord]);
+  }, [dailyWord, gameMode, gameLanguage]);
+
   const [spheres, setSpheres] = useState([]);
   const [foundLetters, setFoundLetters] = useState([]);
   const [score, setScore] = useState(0);
@@ -56,23 +94,21 @@ export function GameProvider({ children }) {
       (error) => {
         console.error("Error watching position:", error);
         setLoading(false);
-        // Fallback or alert user
       },
       { 
           enableHighAccuracy: true, 
-          maximumAge: 0, // Force fresh location
-          timeout: 20000 // Increased timeout to 20s
+          maximumAge: 0, 
+          timeout: 20000 
       }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  // Generate spheres once we have a location (and haven't generated yet)
+  // Generate spheres
   useEffect(() => {
-    if (userLocation && spheres.length === 0) {
-      const newSpheres = generateSpheres(userLocation, 6, 0.5); // 0.5km radius
-      // Assign letters
+    if (userLocation && spheres.length === 0 && dailyWord) {
+      const newSpheres = generateSpheres(userLocation, 6, 0.5);
       const wordLetters = dailyWord.split('');
       newSpheres.forEach((sphere, index) => {
         sphere.letter = wordLetters[index] || '?';
@@ -94,7 +130,7 @@ export function GameProvider({ children }) {
           const spherePoint = turf.point([sphere.lng, sphere.lat]);
           const distance = turf.distance(userPoint, spherePoint, { units: 'meters' });
           
-          if (distance < 50) { // 50 meters
+          if (distance < 50) {
             updated = true;
             return { ...sphere, found: true };
           }
@@ -102,11 +138,6 @@ export function GameProvider({ children }) {
         });
 
         if (updated) {
-            // Calculate newly found letters
-            const newFound = newSpheres.filter(s => s.found).map(s => s.letter);
-            // We need to be careful not to cause infinite loop if we update foundLetters here directly
-            // But since we are inside setSpheres, we should probably use a separate effect or do it here carefully
-             // Actually, let's just update spheres here. We can derive foundLetters from spheres.
              return newSpheres;
         }
         return prevSpheres;
@@ -114,18 +145,30 @@ export function GameProvider({ children }) {
     }
   }, [userLocation]);
 
-  // Update found letters when spheres change
+  // Update found letters
   useEffect(() => {
       const found = spheres.filter(s => s.found).map(s => s.letter);
-      // Only update if different to avoid loops
       setFoundLetters(prev => {
           if (prev.length !== found.length) return found;
+          // Also check if content is different (though length check is usually enough for monotonic growth)
           return prev;
       });
   }, [spheres]);
 
   return (
-    <GameContext.Provider value={{ userLocation, spheres, dailyWord, foundLetters, score, loading }}>
+    <GameContext.Provider value={{ 
+        userLocation, 
+        spheres, 
+        dailyWord, 
+        foundLetters, 
+        score, 
+        loading,
+        gameMode,
+        setGameMode,
+        gameLanguage,
+        setGameLanguage,
+        newGame
+    }}>
       {children}
     </GameContext.Provider>
   );

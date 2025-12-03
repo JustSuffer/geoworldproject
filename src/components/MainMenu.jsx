@@ -1,11 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Play, BarChart2, Settings, HelpCircle, User } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from './LanguageSelector';
+import GameSetupModal from './GameSetupModal';
+import { useGame } from '../context/GameContext';
 
 export default function MainMenu({ onAuth }) {
     const { t } = useTranslation();
+    const navigate = useNavigate();
+    const { setGameMode, setGameLanguage, newGame } = useGame();
+    const [setupOpen, setSetupOpen] = useState(false);
+
+    const handleGameStart = (mode, language) => {
+        setGameMode(mode);
+        setGameLanguage(language);
+        // If unlimited, we might want to ensure a new game starts or just let the effect handle it
+        // But since context updates are async-ish, let's navigate.
+        // Actually, newGame() in context might be needed if we are already in unlimited mode and want to restart, 
+        // but here we are coming from menu.
+        // Just setting state is enough, the GameContext effects will pick it up.
+        // Wait, if we switch from Daily TR to Daily EN, dailyWord updates.
+        
+        // Force a "new game" trigger if needed? 
+        // The context effect `[gameMode, gameLanguage]` handles word generation.
+        
+        navigate('/play');
+    };
 
     return (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gray-900/95 backdrop-blur-sm text-white p-4">
@@ -27,13 +48,13 @@ export default function MainMenu({ onAuth }) {
 
             {/* Menu Buttons */}
             <div className="relative z-10 flex flex-col gap-4 w-full max-w-xs">
-                <Link 
-                    to="/play"
+                <button 
+                    onClick={() => setSetupOpen(true)}
                     className="group relative bg-primary hover:bg-red-700 text-white p-4 rounded-xl font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-[0_0_20px_rgba(178,11,11,0.4)] hover:shadow-[0_0_30px_rgba(178,11,11,0.6)] flex items-center justify-center gap-3"
                 >
                     <Play className="w-6 h-6 fill-current" />
                     {t('play')}
-                </Link>
+                </button>
 
                 <div className="grid grid-cols-2 gap-4">
                     <Link 
@@ -78,6 +99,14 @@ export default function MainMenu({ onAuth }) {
             <div className="absolute bottom-8 text-white/30 text-sm">
                 v1.0.0 • GeoWord Quest
             </div>
+
+            {/* Setup Modal */}
+            {setupOpen && (
+                <GameSetupModal 
+                    onClose={() => setSetupOpen(false)} 
+                    onStart={handleGameStart} 
+                />
+            )}
         </div>
     );
 }
