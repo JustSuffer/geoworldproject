@@ -446,7 +446,7 @@ function StatsModal({ stats, onClose, nextWordTime, gameLanguage, guesses, daily
 
     return (
         <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/90 backdrop-blur-md p-4 animate-in fade-in duration-300"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/90 backdrop-blur-md p-4 animate-in fade-in duration-300 pointer-events-auto"
             onClick={onClose}
         >
             <div 
