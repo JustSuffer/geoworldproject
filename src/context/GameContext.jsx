@@ -230,9 +230,15 @@ export function GameProvider({ children }) {
           if (sphere.found) return sphere;
           
           const spherePoint = turf.point([sphere.lng, sphere.lat]);
-          const distance = turf.distance(userPoint, spherePoint, { units: 'meters' });
+          // Use kilometers and convert to meters for consistency
+          const distanceKm = turf.distance(userPoint, spherePoint, { units: 'kilometers' });
+          const distanceMeters = distanceKm * 1000;
           
-          if (distance < 50) {
+          // Log distance for debugging (can be removed later)
+          console.log(`Distance to sphere ${sphere.letter}: ${distanceMeters.toFixed(2)}m`);
+          
+          // Increased threshold slightly to 60m to be more forgiving -> Reduced to 30m to match visual
+          if (distanceMeters < 30) {
             updated = true;
             return { ...sphere, found: true };
           }
