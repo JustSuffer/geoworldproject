@@ -59,7 +59,7 @@ export default function MainMenu({ onAuth }) {
                         className="group relative bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] flex items-center justify-center gap-3"
                     >
                         <Play className="w-6 h-6 fill-current" />
-                        {t('continue') || "CONTINUE"}
+                        {t('Continue') || "CONTINUE"}
                     </button>
                 )}
 
