@@ -50,7 +50,18 @@ export function GameProvider({ children }) {
   const newGame = () => {
       if (gameMode === 'unlimited') {
           setDailyWord(getRandomWord(gameLanguage));
-          setSpheres([]); // Reset spheres for new word
+          
+          // Reuse existing spheres if they exist, just update letters
+          // This prevents the map from "jumping" or spheres moving around
+          if (spheres.length > 0) {
+             // We will update the spheres in the useEffect that watches dailyWord
+             // But we need to ensure we don't clear them here
+             // We just reset the found status
+             setSpheres(prev => prev.map(s => ({ ...s, found: false })));
+          } else {
+             setSpheres([]); // Only clear if we really want to regenerate (e.g. language change handled elsewhere)
+          }
+
           setFoundLetters([]);
           setGuesses([]);
           setCurrentGuess('');
@@ -96,7 +107,10 @@ export function GameProvider({ children }) {
   const [loading, setLoading] = useState(true);
   
   // Live Tracking
-  const [startTime, setStartTime] = useState(Date.now());
+  const [startTime, setStartTime] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved ? (JSON.parse(saved).startTime || Date.now()) : Date.now();
+  });
   const [distanceWalked, setDistanceWalked] = useState(0);
   const [lastLocation, setLastLocation] = useState(null);
 
@@ -125,15 +139,24 @@ export function GameProvider({ children }) {
           currentGuess,
           gameStatus,
           isGameStarted,
-          savedWord: dailyWord
+          isGameStarted,
+          savedWord: dailyWord,
+          startTime
       }));
   }, [guesses, currentGuess, gameStatus, isGameStarted, dailyWord]);
 
   // Reset tracking on new game
   useEffect(() => {
-      setStartTime(Date.now());
-      setDistanceWalked(0);
-      setLastLocation(null);
+      if (!dailyWord) return;
+      
+      const saved = localStorage.getItem('gameState');
+      const parsed = saved ? JSON.parse(saved) : {};
+      
+      if (parsed.savedWord !== dailyWord) {
+          setStartTime(Date.now());
+          setDistanceWalked(0);
+          setLastLocation(null);
+      }
   }, [dailyWord]);
 
   // Watch location
@@ -207,15 +230,36 @@ export function GameProvider({ children }) {
       }
   }, [userLocation]);
 
-  // Generate spheres
+  // Generate spheres or update letters
   useEffect(() => {
-    if (userLocation && spheres.length === 0 && dailyWord) {
-      const newSpheres = generateSpheres(userLocation, 6, 0.5);
-      const wordLetters = dailyWord.split('');
-      newSpheres.forEach((sphere, index) => {
-        sphere.letter = wordLetters[index] || '?';
-      });
-      setSpheres(newSpheres);
+    if (userLocation && dailyWord) {
+        if (spheres.length === 0) {
+            // Initial generation
+            const newSpheres = generateSpheres(userLocation, 6, 0.5);
+            const wordLetters = dailyWord.split('');
+            newSpheres.forEach((sphere, index) => {
+                sphere.letter = wordLetters[index] || '?';
+            });
+            setSpheres(newSpheres);
+        } else {
+            // Update existing spheres with new word letters
+            // Check if we need to update letters (e.g. new word started)
+            // We can check if the current letters match the new word
+            // But simpler is to just always update them if the word changes
+            // However, we need to be careful not to cause infinite loops
+            // The dependency array includes dailyWord.
+            
+            const wordLetters = dailyWord.split('');
+            // Check if letters match current word to avoid unnecessary updates
+            const currentLetters = spheres.map(s => s.letter).join('');
+            if (currentLetters !== dailyWord) {
+                 setSpheres(prev => prev.map((sphere, index) => ({
+                    ...sphere,
+                    letter: wordLetters[index] || '?',
+                    found: false // Ensure they are hidden for the new word
+                })));
+            }
+        }
     }
   }, [userLocation, dailyWord, spheres.length]);
 

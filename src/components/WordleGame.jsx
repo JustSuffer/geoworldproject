@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { supabase } from '../supabaseClient';
 import { X, BarChart2, HelpCircle, Settings, RotateCcw, User, MapPin, Eye, EyeOff, RefreshCw, Activity, Share2, Home, Check } from 'lucide-react';
@@ -169,8 +169,43 @@ export default function WordleGame({ onStats }) {
         handleKeyup(key);
     };
 
+    // Hidden input ref for native keyboard on mobile
+    const inputRef = useRef(null);
+
+    // Focus hidden input when clicking on game area
+    const handleGameClick = () => {
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+    };
+
+    const handleInputChange = (e) => {
+        const val = e.target.value.toUpperCase();
+        // We only care about the last character added if it's a letter
+        // But since we reset it, we just check the value
+        if (!val) return; // Handle backspace separately via onKeyDown if needed, or just check length
+        
+        const lastChar = val.slice(-1);
+        if (/^[A-Z\u00C0-\u017F]$/.test(lastChar)) {
+            handleKeyup(lastChar);
+        }
+        // Reset input to keep it empty or simple
+        e.target.value = '';
+    };
+
+    const handleInputKeyDown = (e) => {
+        if (e.key === 'Backspace') {
+            handleKeyup('BACKSPACE');
+        } else if (e.key === 'Enter') {
+            handleKeyup('ENTER');
+        }
+    };
+
     useEffect(() => {
         const handleKeyDown = (e) => {
+            // If we are typing in the hidden input, ignore global window events to avoid double firing
+            if (document.activeElement === inputRef.current) return;
+
             const key = e.key.toUpperCase();
             if (key === 'ENTER' || key === 'BACKSPACE') {
                 handleKeyup(key);
@@ -230,10 +265,27 @@ export default function WordleGame({ onStats }) {
             <div className="flex-1 w-full"></div>
 
             {/* Game Container */}
-            <div className={`
-                pointer-events-auto w-full bg-gray-900/95 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] pt-8 pb-6 px-4 flex flex-col items-center transition-all duration-500 transform rounded-t-3xl
+            {/* Game Container */}
+            <div 
+                onClick={handleGameClick}
+                className={`
+                pointer-events-auto w-full bg-gray-900/95 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] 
+                pt-4 pb-2 px-2 md:pt-8 md:pb-6 md:px-4 
+                flex flex-col items-center transition-all duration-500 transform rounded-t-3xl
                 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
             `}>
+                {/* Hidden Input for Mobile Keyboard */}
+                <input
+                    ref={inputRef}
+                    type="text"
+                    className="opacity-0 absolute top-0 left-0 h-0 w-0 pointer-events-none"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="characters"
+                    spellCheck="false"
+                    onChange={handleInputChange}
+                    onKeyDown={handleInputKeyDown}
+                />
                 
                 {/* Header Info (Timer or Play Again) */}
                 <div className="w-full max-w-[380px] mb-4 flex justify-between items-center text-white font-bold bg-black/40 p-3 rounded-xl border border-white/5">
@@ -258,7 +310,7 @@ export default function WordleGame({ onStats }) {
                 </div>
 
                 {/* Found Letters / Hints */}
-                <div className="w-full max-w-[380px] mb-6 flex justify-center gap-2 bg-black/20 p-4 rounded-2xl border border-white/5">
+                <div className="w-full max-w-[380px] mb-2 md:mb-6 flex justify-center gap-1 md:gap-2 bg-black/20 p-2 md:p-4 rounded-2xl border border-white/5">
                     {Array.from({ length: WORD_LENGTH }).map((_, i) => {
                         const letter = dailyWord[i];
                         const isFound = foundLetters.includes(letter); 
@@ -277,7 +329,7 @@ export default function WordleGame({ onStats }) {
                 </div>
 
                 {/* Grid */}
-                <div className="w-full mb-6 flex justify-center">
+                <div className="w-full mb-2 md:mb-6 flex justify-center">
                     <Grid guesses={guesses} currentGuess={currentGuess} targetWord={dailyWord} maxGuesses={MAX_GUESSES} />
                 </div>
 
@@ -307,7 +359,7 @@ function Grid({ guesses, currentGuess, targetWord, maxGuesses }) {
     const empties = maxGuesses - 1 - guesses.length;
     
     return (
-        <div className="grid grid-rows-5 gap-2 w-full max-w-[380px]">
+        <div className="grid grid-rows-5 gap-1 md:gap-2 w-full max-w-[380px]">
             {guesses.map((guess, i) => (
                 <Row key={i} guess={guess} targetWord={targetWord} isFinal={true} />
             ))}
@@ -327,7 +379,7 @@ function Row({ guess, targetWord, isFinal }) {
     const length = 6;
 
     return (
-        <div className="grid grid-cols-6 gap-2">
+        <div className="grid grid-cols-6 gap-1 md:gap-2">
             {Array.from({ length }).map((_, i) => {
                 const char = splitGuess[i];
                 let status = 'empty';
@@ -385,9 +437,9 @@ function Keyboard({ onKeyPress, guesses, targetWord }) {
     });
 
     return (
-        <div className="flex flex-col gap-2 w-full px-1 pb-4">
+        <div className="flex flex-col gap-1 md:gap-2 w-full px-1 pb-2 md:pb-4">
             {rows.map((row, i) => (
-                <div key={i} className="flex justify-center gap-1.5">
+                <div key={i} className="flex justify-center gap-1 md:gap-1.5">
                     {row.map((key) => {
                         let bgClass = 'bg-gray-700/80 hover:bg-gray-600/80 backdrop-blur-sm border border-white/5';
                         if (keyStatus[key] === 'correct') bgClass = 'bg-green-600 border-green-500 shadow-[0_0_10px_rgba(22,163,74,0.3)]';
@@ -401,8 +453,8 @@ function Keyboard({ onKeyPress, guesses, targetWord }) {
                                 key={key}
                                 onClick={() => onKeyPress(key)}
                                 className={`
-                                    ${isWide ? 'px-4 md:px-6 text-xs md:text-sm' : 'flex-1 aspect-[2/3] md:aspect-square max-w-[42px] md:max-w-[48px]'}
-                                    h-12 md:h-14 rounded-xl font-bold text-white transition-all duration-200
+                                    ${isWide ? 'px-2 md:px-6 text-[10px] md:text-sm' : 'flex-1 aspect-[2/3] md:aspect-square max-w-[36px] md:max-w-[48px]'}
+                                    h-10 md:h-14 rounded-lg md:rounded-xl font-bold text-white transition-all duration-200
                                     flex items-center justify-center active:scale-95
                                     ${bgClass}
                                 `}

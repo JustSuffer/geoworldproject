@@ -1,5 +1,5 @@
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -19,9 +19,12 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 function MapRecenter({ position }) {
     const map = useMap();
+    const initialized = useRef(false);
+
     useEffect(() => {
-        if (position) {
+        if (position && !initialized.current) {
             map.flyTo(position, 15);
+            initialized.current = true;
         }
     }, [position, map]);
     return null;
@@ -45,6 +48,10 @@ export default function MapView() {
             <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; OpenStreetMap contributors'
+                keepBuffer={20}
+                maxNativeZoom={19}
+                maxZoom={20}
+                updateWhenZooming={false}
             />
             <MapRecenter position={userLocation} />
             
