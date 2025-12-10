@@ -6,8 +6,14 @@ const GameContext = createContext();
 
 export function GameProvider({ children }) {
   const [userLocation, setUserLocation] = useState(null);
-  const [gameMode, setGameMode] = useState('daily'); // 'daily' or 'unlimited'
-  const [gameLanguage, setGameLanguage] = useState('tr'); // 'tr' or 'en'
+  const [gameMode, setGameMode] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved ? (JSON.parse(saved).gameMode || 'daily') : 'daily';
+  }); 
+  const [gameLanguage, setGameLanguage] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved ? (JSON.parse(saved).gameLanguage || 'tr') : 'tr';
+  });
   
   // Word Pools
   const WORDS_TR = [
@@ -34,16 +40,20 @@ export function GameProvider({ children }) {
     return pool[Math.floor(Math.random() * pool.length)];
   };
 
-  const [dailyWord, setDailyWord] = useState("");
+  const [dailyWord, setDailyWord] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved ? (JSON.parse(saved).savedWord || "") : "";
+  });
   
   // Initialize word based on mode and language
   useEffect(() => {
       if (gameMode === 'daily') {
           setDailyWord(getDailyWord(gameLanguage));
       } else {
-          // For unlimited, we might want to trigger this manually or on mount
-          // If it's empty, set it. If we switch modes, reset it.
-          setDailyWord(getRandomWord(gameLanguage));
+          // For unlimited, only set if empty to preserve session on reload
+          if (!dailyWord) {
+              setDailyWord(getRandomWord(gameLanguage));
+          }
       }
   }, [gameMode, gameLanguage]);
 
@@ -101,8 +111,14 @@ export function GameProvider({ children }) {
       return () => clearInterval(interval);
   }, [dailyWord, gameMode, gameLanguage]);
 
-  const [spheres, setSpheres] = useState([]);
-  const [foundLetters, setFoundLetters] = useState([]);
+  const [spheres, setSpheres] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved ? (JSON.parse(saved).spheres || []) : [];
+  });
+  const [foundLetters, setFoundLetters] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved ? (JSON.parse(saved).foundLetters || []) : [];
+  });
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(true);
   
@@ -111,7 +127,10 @@ export function GameProvider({ children }) {
       const saved = localStorage.getItem('gameState');
       return saved ? (JSON.parse(saved).startTime || Date.now()) : Date.now();
   });
-  const [distanceWalked, setDistanceWalked] = useState(0);
+  const [distanceWalked, setDistanceWalked] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved ? (JSON.parse(saved).distanceWalked || 0) : 0;
+  });
   const [lastLocation, setLastLocation] = useState(null);
 
   // Game Persistence State
@@ -139,11 +158,15 @@ export function GameProvider({ children }) {
           currentGuess,
           gameStatus,
           isGameStarted,
-          isGameStarted,
           savedWord: dailyWord,
-          startTime
+          startTime,
+          spheres,
+          foundLetters,
+          distanceWalked,
+          gameMode,
+          gameLanguage
       }));
-  }, [guesses, currentGuess, gameStatus, isGameStarted, dailyWord]);
+  }, [guesses, currentGuess, gameStatus, isGameStarted, dailyWord, spheres, foundLetters, distanceWalked, gameMode, gameLanguage]);
 
   // Reset tracking on new game
   useEffect(() => {
@@ -207,6 +230,7 @@ export function GameProvider({ children }) {
               setCurrentGuess('');
               setGameStatus('playing');
               setIsGameStarted(false);
+              setSpheres([]); // Clear spheres if word mismatch
           }
       }
   }, [dailyWord]);
