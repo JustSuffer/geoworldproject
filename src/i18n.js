@@ -30,7 +30,7 @@ const resources = {
   tr: {
     translation: {
       "play": "OYNA",
-      "Continue": "DEVAM ET",
+      "Continue": "Devam Et",
       "statistics": "İSTATİSTİKLER",
       "settings": "AYARLAR",
       "howToPlay": "NASIL OYNANIR",
