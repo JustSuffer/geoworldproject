@@ -288,7 +288,7 @@ export default function WordleGame({ onStats }) {
                 />
                 
                 {/* Header Info (Timer or Play Again) */}
-                <div className="w-full max-w-[380px] mb-4 flex justify-between items-center text-white font-bold bg-black/40 p-3 rounded-xl border border-white/5">
+                <div className="w-full max-w-[320px] md:max-w-[380px] mb-4 flex justify-between items-center text-white font-bold bg-black/40 p-3 rounded-xl border border-white/5">
                     {gameMode === 'daily' ? (
                         <div className="flex items-center gap-2">
                             <span className="text-gray-400 text-xs">NEXT WORD:</span>
@@ -310,14 +310,14 @@ export default function WordleGame({ onStats }) {
                 </div>
 
                 {/* Found Letters / Hints */}
-                <div className="w-full max-w-[380px] mb-2 md:mb-6 flex justify-center gap-1 md:gap-2 bg-black/20 p-2 md:p-4 rounded-2xl border border-white/5">
+                <div className="w-full max-w-[320px] md:max-w-[380px] mb-2 md:mb-6 flex justify-center gap-1 md:gap-2 bg-black/20 p-2 md:p-4 rounded-2xl border border-white/5">
                     {Array.from({ length: WORD_LENGTH }).map((_, i) => {
                         const letter = dailyWord[i];
                         const isFound = foundLetters.includes(letter); 
                         
                         return (
                             <div key={i} className={`
-                                w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold border-2 transition-all duration-300
+                                w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center text-base md:text-lg font-bold border-2 transition-all duration-300
                                 ${isFound 
                                     ? 'bg-green-500 border-green-400 text-white shadow-[0_0_15px_rgba(34,197,94,0.5)] transform scale-110' 
                                     : 'bg-gray-800 border-gray-700 text-gray-600'}
@@ -359,7 +359,7 @@ function Grid({ guesses, currentGuess, targetWord, maxGuesses }) {
     const empties = maxGuesses - 1 - guesses.length;
     
     return (
-        <div className="grid grid-rows-5 gap-1 md:gap-2 w-full max-w-[380px]">
+        <div className="grid grid-rows-5 gap-1 md:gap-2 w-full max-w-[320px] md:max-w-[380px]">
             {guesses.map((guess, i) => (
                 <Row key={i} guess={guess} targetWord={targetWord} isFinal={true} />
             ))}
@@ -439,7 +439,7 @@ function Keyboard({ onKeyPress, guesses, targetWord }) {
     return (
         <div className="flex flex-col gap-1 md:gap-2 w-full px-1 pb-2 md:pb-4">
             {rows.map((row, i) => (
-                <div key={i} className="flex justify-center gap-1 md:gap-1.5">
+                <div key={i} className="flex justify-center gap-0.5 md:gap-1.5">
                     {row.map((key) => {
                         let bgClass = 'bg-gray-700/80 hover:bg-gray-600/80 backdrop-blur-sm border border-white/5';
                         if (keyStatus[key] === 'correct') bgClass = 'bg-green-600 border-green-500 shadow-[0_0_10px_rgba(22,163,74,0.3)]';
@@ -453,8 +453,8 @@ function Keyboard({ onKeyPress, guesses, targetWord }) {
                                 key={key}
                                 onClick={() => onKeyPress(key)}
                                 className={`
-                                    ${isWide ? 'px-2 md:px-6 text-[10px] md:text-sm' : 'flex-1 aspect-[2/3] md:aspect-square max-w-[36px] md:max-w-[48px]'}
-                                    h-10 md:h-14 rounded-lg md:rounded-xl font-bold text-white transition-all duration-200
+                                    ${isWide ? 'px-1 md:px-6 text-[10px] md:text-sm' : 'flex-1 aspect-[2/3] md:aspect-square max-w-[36px] md:max-w-[48px] text-xs md:text-base'}
+                                    min-w-0 h-9 md:h-14 rounded-lg md:rounded-xl font-bold text-white transition-all duration-200
                                     flex items-center justify-center active:scale-95
                                     ${bgClass}
                                 `}
