@@ -7,15 +7,9 @@ import { useGame } from '../context/GameContext';
 export default function GameScreen({ navigation }) {
     return (
         <View className="flex-1 bg-black">
-            {/* Map Layer (Background) */}
-            <View className="absolute inset-0 z-0">
-                <GameMap />
-            </View>
+            {/* <GameMap /> */}
 
-            {/* UI Layer (Foreground) */}
-            <View className="absolute inset-0 z-10 pointer-events-box-none">
-                <WordleGame navigation={navigation} />
-            </View>
+            {/* <WordleGame navigation={navigation} /> */}
         </View>
     );
 }
