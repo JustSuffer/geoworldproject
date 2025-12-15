@@ -29,7 +29,6 @@ export default function GameMap() {
             style={{ flex: 1, width: '100%', height: '100%' }}
             initialRegion={region}
             showsUserLocation={true}
-            followsUserLocation={true}
             // provider={PROVIDER_GOOGLE} // Optional: Enable if Google Maps is configured
         >
             {/* 
