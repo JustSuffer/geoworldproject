@@ -220,7 +220,7 @@ export default function WordleGame({ onStats }) {
     }, [currentGuess, gameStatus]);
 
     return (
-        <div className="flex flex-col items-center justify-between h-full w-full max-w-lg mx-auto pointer-events-none">
+        <div className="flex flex-col items-center justify-center min-h-[100dvh] w-full max-w-lg mx-auto pointer-events-none py-14 md:py-8">
             {/* Top Right Controls */}
             <div className="pointer-events-auto absolute top-4 right-4 flex items-center gap-2 z-50">
                 {/* Live Stats Button */}
@@ -261,28 +261,25 @@ export default function WordleGame({ onStats }) {
                 </button>
             </div>
 
-            {/* Spacer for Map visibility */}
-            <div className="flex-1 w-full"></div>
-
-            {/* Game Container */}
             {/* Game Container */}
             <div 
                 onClick={handleGameClick}
                 className={`
-                pointer-events-auto w-full bg-gray-900/95 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] 
-                pt-4 pb-2 px-2 md:pt-8 md:pb-6 md:px-4 
-                flex flex-col items-center transition-all duration-500 transform rounded-t-3xl
-                ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
+                pointer-events-auto w-[95%] md:w-full bg-gray-900/95 border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.8)] 
+                pt-4 pb-4 px-2 md:pt-8 md:pb-6 md:px-4 
+                flex flex-col items-center transition-all duration-500 transform rounded-3xl
+                ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}
             `}>
                 {/* Hidden Input for Mobile Keyboard */}
                 <input
                     ref={inputRef}
                     type="text"
-                    className="opacity-0 absolute top-0 left-0 h-0 w-0 pointer-events-none"
+                    className="opacity-0 absolute top-0 left-0 h-0 w-0 pointer-events-none text-base"
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="characters"
                     spellCheck="false"
+                    enterKeyHint="enter"
                     onChange={handleInputChange}
                     onKeyDown={handleInputKeyDown}
                 />
