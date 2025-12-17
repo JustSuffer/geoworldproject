@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Play, BarChart2, Settings, HelpCircle, AlertTriangle } from 'lucide-react-native';
 import { useGame } from '../context/GameContext';
@@ -26,16 +26,16 @@ export default function HomeScreen({ navigation }) {
 
     return (
         <SafeAreaView className="flex-1 bg-gray-900" edges={['top', 'left', 'right']}>
-             <View className="flex-1 items-center justify-center p-4 relative">
+             <View className="flex-1 items-center justify-center p-4 pb-48 relative">
              {/* Background Effects */}
              <View className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl" style={{ opacity: 0.2 }} />
              <View className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl" style={{ opacity: 0.2 }} />
 
             {/* Header */}
-            <View className="z-10 items-center mb-12">
+            <View className="z-10 items-center mb-8">
                 <Image 
                     source={require('../../assets/logo.png')} 
-                    style={{ width: 300, height: 150 }} 
+                    style={{ width: Dimensions.get('window').width * 0.95, height: 300 }} 
                     resizeMode="contain"
                 />
             </View>
