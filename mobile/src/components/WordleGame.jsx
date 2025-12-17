@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Modal, Share, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Modal, Share, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGame } from '../context/GameContext';
-import { X, Activity, Eye, EyeOff, RefreshCw, Share2, Check, Home } from 'lucide-react-native';
+import { Activity, Eye, EyeOff, RefreshCw, Share2, X, Home, ArrowLeft } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 const WORD_LENGTH = 6;
 const MAX_GUESSES = 5;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function WordleGame({ navigation }) {
+    const { t } = useTranslation();
     const { 
         dailyWord, foundLetters, gameMode, newGame, startTime, distanceWalked,
         guesses, setGuesses, currentGuess, setCurrentGuess, gameStatus, setGameStatus
     } = useGame();
+    
+    const insets = useSafeAreaInsets();
     
     const [statsOpen, setStatsOpen] = useState(false);
     const [isVisible, setIsVisible] = useState(true);
@@ -20,10 +26,18 @@ export default function WordleGame({ navigation }) {
     
     // Timer Logic
     useEffect(() => {
+        // Reset immediately on start time change
+        setElapsedTime('00:00:00');
+        
         if (gameStatus !== 'playing') return;
         const interval = setInterval(() => {
             const now = Date.now();
             const diff = now - startTime;
+            // Cap at 24 hours
+            if (diff >= 24 * 60 * 60 * 1000) {
+                 setElapsedTime('00:00:00');
+                 return;
+            }
             const h = Math.floor(diff / (1000 * 60 * 60));
             const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const s = Math.floor((diff % (1000 * 60)) / 1000);
@@ -81,38 +95,61 @@ export default function WordleGame({ navigation }) {
         if (inputRef.current) inputRef.current.focus();
     };
 
+    // Calculate stats (simple mock)
+    const stats = {
+        played: guesses.length > 0 ? 1 : 0,
+        winRate: 100,
+        currentStreak: 1,
+        maxStreak: 1
+    };
+
     return (
         <KeyboardAvoidingView 
             behavior={Platform.OS === "ios" ? "padding" : "height"}
-            className="flex-1 items-center justify-center relative pointer-events-none"
+            className="flex-1 items-center justify-center relative pointer-events-box-none"
         >
-            {/* Top Right Controls */}
-            <View className="absolute top-12 right-4 flex-row items-center gap-2 z-50">
-               <TouchableOpacity 
-                   onPress={() => setShowLiveStats(!showLiveStats)}
-                   className={`p-3 rounded-full border border-white/10 ${showLiveStats ? 'bg-red-500' : 'bg-gray-900/80'}`}
-               >
-                   <Activity size={24} color="white" />
-               </TouchableOpacity>
-               
-               <TouchableOpacity 
-                   onPress={() => setIsVisible(!isVisible)}
-                   className="p-3 bg-gray-900/80 rounded-full border border-white/10"
-               >
-                   {isVisible ? <EyeOff size={24} color="white" /> : <Eye size={24} color="white" />}
-               </TouchableOpacity>
+            {/* Top Controls - Dynamic Safe Area */}
+            <View 
+                className="absolute left-4 right-4 flex-row items-center justify-between z-50"
+                style={{ top: insets.top + 10 }} // Dynamic top padding
+            >
+                {/* Back to Menu */}
+                <TouchableOpacity 
+                    onPress={() => navigation.navigate('Home')}
+                    className="flex-row items-center bg-gray-900/90 py-2 px-4 rounded-full border border-white/20 shadow-lg"
+                >
+                    <ArrowLeft size={20} color="white" style={{ marginRight: 8 }} />
+                    <Text className="text-white font-bold text-xs tracking-wider">{t('common.menu')}</Text>
+                </TouchableOpacity>
+
+                {/* Right Side Tools */}
+                <View className="flex-row">
+                    <TouchableOpacity 
+                        onPress={() => setShowLiveStats(!showLiveStats)}
+                        className={`p-3 rounded-full border shadow-lg mr-2 ${showLiveStats ? 'bg-red-500 border-red-400' : 'bg-gray-900/90 border-white/20'}`}
+                    >
+                        <Activity size={24} color="white" />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                        onPress={() => setIsVisible(!isVisible)}
+                        className="p-3 bg-gray-900/90 rounded-full border border-white/20 shadow-lg"
+                    >
+                        {isVisible ? <EyeOff size={24} color="white" /> : <Eye size={24} color="white" />}
+                    </TouchableOpacity>
+                </View>
             </View>
 
              {/* Live Stats Popover */}
              {showLiveStats && (
                 <View className="absolute top-24 right-4 w-48 bg-gray-900/95 border border-white/10 rounded-xl p-4 z-50">
                     <View className="flex-row justify-between items-center mb-2">
-                        <Text className="text-gray-400 text-xs">TIME</Text>
+                        <Text className="text-gray-400 text-xs">{t('game.time')}</Text>
                         <Text className="text-red-500 font-bold">{elapsedTime}</Text>
                     </View>
                     <View className="h-[1px] bg-white/10 my-2" />
                     <View className="flex-row justify-between items-center">
-                        <Text className="text-gray-400 text-xs">DIST</Text>
+                        <Text className="text-gray-400 text-xs">{t('game.distance')}</Text>
                         <Text className="text-green-400 font-bold">{distanceWalked.toFixed(2)} km</Text>
                     </View>
                 </View>
@@ -125,8 +162,12 @@ export default function WordleGame({ navigation }) {
                 className={`
                     w-[95%] bg-gray-900/95 border border-white/10 rounded-3xl p-4 items-center shadow-xl
                     transition-all duration-500
-                    ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-20'}
+                    ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-20 secret-hide'}
                 `}
+                style={{
+                  display: isVisible ? 'flex' : 'none', 
+                  marginTop: 60 // Add top margin to avoid status bar overlap
+                }}
             >
                  <TextInput
                     ref={inputRef}
@@ -148,17 +189,17 @@ export default function WordleGame({ navigation }) {
                  <View className="w-full max-w-[320px] mb-4 flex-row justify-between items-center bg-black/40 p-3 rounded-xl border border-white/5">
                     {gameMode === 'daily' ? (
                         <View className="flex-row items-center gap-2">
-                             <Text className="text-gray-400 text-xs">NEXT:</Text>
+                             <Text className="text-gray-400 text-xs">{t('common.next')}:</Text>
                              <Text className="text-red-500 text-lg font-mono">{timeLeft}</Text>
                         </View>
                     ) : (
                         <TouchableOpacity onPress={newGame} className="bg-red-500 px-4 py-2 rounded-lg flex-row gap-2">
                             <RefreshCw size={16} color="white" />
-                            <Text className="text-white font-bold">NEW</Text>
+                            <Text className="text-white font-bold">{t('common.newGame').replace('GAME', '')}</Text> 
                         </TouchableOpacity>
                     )}
                     <Text className="text-xs text-gray-400 font-bold">
-                        {gameMode === 'daily' ? 'DAILY' : 'UNLIMITED'}
+                        {gameMode === 'daily' ? t('common.daily') : t('common.unlimited')}
                     </Text>
                  </View>
 
@@ -199,13 +240,13 @@ export default function WordleGame({ navigation }) {
                             <X size={20} color="white" />
                         </TouchableOpacity>
                         
-                        <Text className="text-center text-2xl font-black text-white mb-6">STATISTICS</Text>
+                        <Text className="text-center text-2xl font-black text-white mb-6">{t('common.statistics')}</Text>
                         
                         <View className="flex-row justify-between mb-6">
-                            <StatBox label="Played" value={stats.played || 1} />
-                            <StatBox label="Win %" value={stats.winRate || 100} color="text-green-400" />
-                            <StatBox label="Streak" value={stats.currentStreak || 1} color="text-blue-400" />
-                            <StatBox label="Max" value={stats.maxStreak || 1} color="text-purple-400" />
+                            <StatBox label={t('stats.gamesPlayed')} value={stats.played || 1} />
+                            <StatBox label={t('stats.winRate')} value={stats.winRate || 100} color="text-green-400" />
+                            <StatBox label={t('stats.streak')} value={stats.currentStreak || 1} color="text-blue-400" />
+                            <StatBox label={t('stats.maxStreak')} value={stats.maxStreak || 1} color="text-purple-400" />
                         </View>
                         
                         <View className="border-t border-white/10 pt-4 gap-3">
@@ -214,15 +255,22 @@ export default function WordleGame({ navigation }) {
                                 onPress={() => Share.share({ message: `I won GeoWord Quest! ${guesses.length}/6` })}
                              >
                                  <Share2 size={20} color="white" />
-                                 <Text className="text-white font-bold">SHARE</Text>
+                                 <Text className="text-white font-bold">{t('common.share')}</Text>
                              </TouchableOpacity>
                              
                              <TouchableOpacity 
                                 className="bg-gray-800 py-3 rounded-xl flex-row justify-center items-center gap-2"
-                                onPress={() => navigation.navigate('Home')}
+                                onPress={() => {
+                                    setStatsOpen(false);
+                                    if (navigation && navigation.navigate) {
+                                        navigation.navigate('Home');
+                                    } else {
+                                        console.log("Navigation not available");
+                                    }
+                                }}
                              >
                                  <Home size={20} color="white" />
-                                 <Text className="text-white font-bold">MAIN MENU</Text>
+                                 <Text className="text-white font-bold">{t('common.mainMenu')}</Text>
                              </TouchableOpacity>
                         </View>
                     </View>
@@ -255,8 +303,9 @@ function Grid({ guesses, currentGuess, targetWord, maxGuesses }) {
 }
 
 function Row({ guess, targetWord, isFinal }) {
-    const splitGuess = guess.split('');
-    const splitTarget = targetWord.toUpperCase().split('');
+    const splitGuess = guess ? guess.split('') : [];
+    const splitTarget = targetWord ? targetWord.toUpperCase().split('') : []; // Safety check
+    
     return (
         <View className="flex-row gap-1 mb-1">
              {Array.from({ length: 6 }).map((_, i) => {
@@ -284,21 +333,22 @@ function Keyboard({ onKeyPress, guesses, targetWord }) {
         ['ENTER', 'Z', 'C', 'V', 'B', 'N', 'M', 'Ö', 'Ç', 'BACKSPACE']
     ];
     
-    // Key logic omitted for brevity, reusing simplistic approach
+    // Simple logic for key colors could be added here
     return (
-        <View className="gap-1 w-full pb-4">
+        <View className="w-full pb-0">
             {rows.map((row, i) => (
-                <View key={i} className="flex-row justify-center gap-1">
+                <View key={i} className="flex-row justify-center mb-1">
                     {row.map((key) => (
                         <TouchableOpacity 
                             key={key} 
                             onPress={() => onKeyPress(key)}
                             className={`
                                 ${key.length > 1 ? 'px-2' : 'w-8'}
-                                h-10 bg-gray-700 rounded-lg items-center justify-center
+                                h-10 bg-gray-700 rounded-lg items-center justify-center mx-0.5
+                                active:bg-gray-600
                             `}
                         >
-                            <Text className="text-white text-xs font-bold">{key === 'BACKSPACE' ? '⌫' : key}</Text>
+                            <Text className="text-white text-[10px] font-bold">{key === 'BACKSPACE' ? '⌫' : key}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>

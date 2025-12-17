@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal } from 'react-native';
-import { Play, BarChart2, Settings, HelpCircle, User, AlertTriangle } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, Modal, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Play, BarChart2, Settings, HelpCircle, AlertTriangle } from 'lucide-react-native';
 import { useGame } from '../context/GameContext';
+import GameSetupModal from '../components/GameSetupModal';
+import { useTranslation } from 'react-i18next';
 
 export default function HomeScreen({ navigation }) {
-    const { gameMode, newGame, isGameStarted, setIsGameStarted, resetGame } = useGame();
+    const { t } = useTranslation();
+    const { isGameStarted, newGame } = useGame();
     const [setupOpen, setSetupOpen] = useState(false);
     const [showResetWarning, setShowResetWarning] = useState(false);
 
@@ -16,85 +20,89 @@ export default function HomeScreen({ navigation }) {
         if (isGameStarted) {
             setShowResetWarning(true);
         } else {
-            // For now, simple start logic without full modal for simplicity in first pass
-            // Or we can assume default 'daily' mode or just trigger newGame
-            // Let's implement basic mode selection if needed, or just start daily
-            // Since we don't have the modal yet, let's just trigger daily new game
-            newGame();
-            navigation.navigate('Game');
+            setSetupOpen(true);
         }
     };
 
-    const t = (key) => key; // Mock translation for now, will implement i18n later if needed
-
     return (
-        <View className="flex-1 items-center justify-center bg-gray-900 p-4 relative">
+        <SafeAreaView className="flex-1 bg-gray-900" edges={['top', 'left', 'right']}>
+             <View className="flex-1 items-center justify-center p-4 relative">
              {/* Background Effects */}
              <View className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl" style={{ opacity: 0.2 }} />
              <View className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl" style={{ opacity: 0.2 }} />
 
             {/* Header */}
             <View className="z-10 items-center mb-12">
-                <Text className="text-5xl font-black text-white mb-2 shadow-lg">
-                    GEOWORD
-                </Text>
-                <Text className="text-2xl font-bold text-red-500 tracking-[0.5em] uppercase">
-                    QUEST
-                </Text>
+                <Image 
+                    source={require('../../assets/logo.png')} 
+                    style={{ width: 300, height: 150 }} 
+                    resizeMode="contain"
+                />
             </View>
 
-            {/* Menu Buttons */}
-            <View className="z-10 w-full max-w-xs gap-4">
-                {isGameStarted && (
+            {/* Menu Buttons - Centered and full width max */}
+            <View className="z-10 w-full max-w-sm items-center">
+                {/* Continue button */}
+                {isGameStarted ? (
                     <TouchableOpacity 
                         onPress={handleContinue}
-                        className="bg-blue-600 p-4 rounded-xl flex-row items-center justify-center gap-3 shadow-lg shadow-blue-500/30"
+                        className="bg-blue-600 w-full p-4 rounded-xl flex-row items-center justify-center mb-4 shadow-lg shadow-blue-500/30"
                     >
-                        <Play size={24} color="white" fill="white" />
-                        <Text className="text-white font-bold text-xl">CONTINUE</Text>
+                        <Play size={24} color="white" fill="white" style={{ marginRight: 12 }} />
+                        <Text className="text-white font-bold text-xl">{t('common.continue')}</Text>
                     </TouchableOpacity>
-                )}
+                ) : null}
 
                 <TouchableOpacity 
                     onPress={handlePlayClick}
-                    className="bg-red-500 p-4 rounded-xl flex-row items-center justify-center gap-3 shadow-lg shadow-red-500/30"
+                    className="bg-red-500 w-full p-4 rounded-xl flex-row items-center justify-center mb-4 shadow-lg shadow-red-500/30"
                 >
-                    <Play size={24} color="white" fill="white" />
-                    <Text className="text-white font-bold text-xl">PLAY</Text>
+                    <Play size={24} color="white" fill="white" style={{ marginRight: 12 }} />
+                    <Text className="text-white font-bold text-xl uppercase">{t('common.play')}</Text>
                 </TouchableOpacity>
 
-                <View className="flex-row gap-4">
+                <View className="flex-row w-full mb-4">
                     <TouchableOpacity 
-                        className="flex-1 bg-gray-800 p-4 rounded-xl items-center justify-center gap-2"
-                        // onPress={() => navigation.navigate('Statistics')}
+                        className="flex-1 bg-gray-800 p-4 rounded-xl items-center justify-center mr-2"
+                        onPress={() => navigation.navigate('Statistics')}
                     >
-                        <BarChart2 size={24} color="white" />
-                        <Text className="text-white text-xs font-bold">STATISTICS</Text>
+                        <BarChart2 size={24} color="white" style={{ marginBottom: 8 }} />
+                        <Text className="text-white text-xs font-bold uppercase">{t('common.statistics')}</Text>
                     </TouchableOpacity>
                     
                     <TouchableOpacity 
-                        className="flex-1 bg-gray-800 p-4 rounded-xl items-center justify-center gap-2"
-                        // onPress={() => navigation.navigate('Settings')}
+                        className="flex-1 bg-gray-800 p-4 rounded-xl items-center justify-center ml-2"
+                        onPress={() => navigation.navigate('Settings')}
                     >
-                        <Settings size={24} color="white" />
-                        <Text className="text-white text-xs font-bold">SETTINGS</Text>
+                        <Settings size={24} color="white" style={{ marginBottom: 8 }} />
+                        <Text className="text-white text-xs font-bold uppercase">{t('common.settings')}</Text>
                     </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity 
-                    className="bg-gray-800 p-4 rounded-xl flex-row items-center justify-center gap-3"
-                    // onPress={() => navigation.navigate('HowToPlay')}
+                    className="bg-gray-800 w-full p-4 rounded-xl flex-row items-center justify-center mb-4"
+                    onPress={() => navigation.navigate('HowToPlay')}
                 >
-                    <HelpCircle size={24} color="white" />
-                    <Text className="text-white font-bold">HOW TO PLAY</Text>
+                    <HelpCircle size={24} color="white" style={{ marginRight: 12 }} />
+                    <Text className="text-white font-bold uppercase">{t('common.howToPlay')}</Text>
                 </TouchableOpacity>
             </View>
 
             {/* Footer */}
             <View className="absolute bottom-8">
-                <Text className="text-white/30 text-sm">v1.0.0 • GeoWord Quest</Text>
+                <Text className="text-white/30 text-sm">{t('home.version')}</Text>
             </View>
             
+            {/* Game Setup Modal */}
+            <GameSetupModal 
+                visible={setupOpen} 
+                onClose={() => setSetupOpen(false)}
+                onStart={() => {
+                    setSetupOpen(false);
+                    navigation.navigate('Game');
+                }}
+            />
+
             {/* Reset Warning Modal */}
             <Modal
                 transparent={true}
@@ -108,9 +116,9 @@ export default function HomeScreen({ navigation }) {
                             <View className="w-16 h-16 bg-red-500/20 rounded-full items-center justify-center mb-2">
                                 <AlertTriangle size={32} color="#EF4444" />
                             </View>
-                            <Text className="text-2xl font-bold text-white">Warning!</Text>
+                            <Text className="text-2xl font-bold text-white text-center">{t('common.warning')}</Text>
                             <Text className="text-gray-300 text-center">
-                                Starting a new game will reset your current progress. Are you sure you want to continue?
+                                {t('home.resetWarning')}
                             </Text>
                             
                             <View className="flex-row gap-3 w-full mt-4">
@@ -118,23 +126,23 @@ export default function HomeScreen({ navigation }) {
                                     onPress={() => setShowResetWarning(false)}
                                     className="flex-1 py-3 px-4 bg-gray-800 rounded-xl items-center"
                                 >
-                                    <Text className="text-white font-bold">Cancel</Text>
+                                    <Text className="text-white font-bold">{t('common.cancel')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                     onPress={() => {
                                         setShowResetWarning(false);
-                                        newGame();
-                                        navigation.navigate('Game');
+                                        setSetupOpen(true);
                                     }}
                                     className="flex-1 py-3 px-4 bg-red-600 rounded-xl items-center"
                                 >
-                                    <Text className="text-white font-bold">New Game</Text>
+                                    <Text className="text-white font-bold">{t('common.newGame')}</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
                     </View>
                 </View>
             </Modal>
-        </View>
+            </View>
+        </SafeAreaView>
     );
 }

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import LanguageSelector from './LanguageSelector';
 import GameSetupModal from './GameSetupModal';
 import { useGame } from '../context/GameContext';
+import logo from '../assets/logo.png';
 
 export default function MainMenu({ onAuth }) {
     const { t } = useTranslation();
@@ -42,13 +43,8 @@ export default function MainMenu({ onAuth }) {
             </div>
 
             {/* Header */}
-            <div className="relative z-10 text-center mb-12">
-                <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-2 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent drop-shadow-lg">
-                    GEOWORD
-                </h1>
-                <h2 className="text-2xl md:text-3xl font-bold text-primary tracking-widest uppercase">
-                    QUEST
-                </h2>
+            <div className="relative z-10 text-center mb-8">
+                <img src={logo} alt="GeoWord Quest" className="w-80 md:w-96 drop-shadow-2xl hover:scale-105 transition-transform duration-500" />
             </div>
 
             {/* Menu Buttons */}

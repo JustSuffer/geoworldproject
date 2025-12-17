@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as turf from '@turf/turf';
 import { generateSpheres } from '../utils/generateSpheres';
+import i18n from '../i18n'; // Import i18n instance
 
 const GameContext = createContext();
 
@@ -65,6 +66,13 @@ export function GameProvider({ children }) {
     loadState();
   }, []);
 
+  // Sync language with i18n
+  useEffect(() => {
+    if (gameLanguage) {
+      i18n.changeLanguage(gameLanguage);
+    }
+  }, [gameLanguage]);
+
   // Initialize word based on mode and language
   useEffect(() => {
       if (gameMode === 'daily') {
@@ -77,6 +85,10 @@ export function GameProvider({ children }) {
   }, [gameMode, gameLanguage]);
 
   const newGame = () => {
+      // Mark game as started for all modes so "Continue" button appears
+      setIsGameStarted(true);
+      setGameStatus('playing');
+      
       if (gameMode === 'unlimited') {
           setDailyWord(getRandomWord(gameLanguage));
           if (spheres.length > 0) {
@@ -87,8 +99,15 @@ export function GameProvider({ children }) {
           setFoundLetters([]);
           setGuesses([]);
           setCurrentGuess('');
-          setGameStatus('playing');
-          setIsGameStarted(true);
+          // Reset tracking
+          setStartTime(Date.now());
+          setDistanceWalked(0);
+          setLastLocation(userLocation); // Reset continuous walk tracking
+      } else {
+          // Daily Mode - ensure word is set
+           setDailyWord(getDailyWord(gameLanguage));
+           // We don't forcefully reset guesses/time for Daily as it persists for 24h
+           // But we ensure status is playing
       }
   };
 
