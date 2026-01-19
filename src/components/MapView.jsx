@@ -22,6 +22,9 @@ function MapRecenter({ position }) {
     const initialized = useRef(false);
 
     useEffect(() => {
+        // Fix for rendering issues and resize
+        map.invalidateSize();
+
         if (position && !initialized.current) {
             map.flyTo(position, 15);
             initialized.current = true;
@@ -44,7 +47,16 @@ export default function MapView() {
     }
 
     return (
-        <MapContainer center={userLocation} zoom={15} className="h-full w-full z-0">
+        <MapContainer 
+            center={userLocation} 
+            zoom={15} 
+            className="h-full w-full z-0"
+            dragging={true}
+            touchZoom={true}
+            scrollWheelZoom={true}
+            doubleClickZoom={true}
+            zoomControl={false} // We can add a custom one if needed, or keep default. Let's keep default actually, or false if it overlaps UI.
+        >
             <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; OpenStreetMap contributors'
