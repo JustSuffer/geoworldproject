@@ -74,7 +74,6 @@ const resources = {
         "title": "Settings",
         "language": "Language",
         "sound": "Sound Effects",
-        "music": "Music",
         "notifications": "Notifications",
         "darkMode": "Dark Mode",
         "about": "About"
@@ -160,7 +159,6 @@ const resources = {
         "title": "Ayarlar",
         "language": "Dil",
         "sound": "Ses Efektleri",
-        "music": "Müzik",
         "notifications": "Bildirimler",
         "darkMode": "Karanlık Mod",
         "about": "Hakkında"

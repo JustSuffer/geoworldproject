@@ -35,6 +35,13 @@ function MapRecenter({ position }) {
 
 export default function MapView() {
     const { userLocation, spheres, locationError } = useGame();
+    // Cache the initial location so the map doesn't snap back on every GPS update
+    const initialLocationRef = useRef(null);
+    
+    // Store the first valid location
+    if (userLocation && !initialLocationRef.current) {
+        initialLocationRef.current = userLocation;
+    }
 
     if (!userLocation) {
         return <div className="h-full w-full flex items-center justify-center text-white bg-gray-800">
@@ -68,13 +75,14 @@ export default function MapView() {
 
     return (
         <MapContainer 
-            center={userLocation} 
+            center={initialLocationRef.current} 
             zoom={15} 
             className="h-full w-full z-0"
             dragging={true}
-            touchZoom={true}
-            scrollWheelZoom={true}
-            doubleClickZoom={true}
+            touchZoom={true} // Enables two-finger pinch-to-zoom
+            scrollWheelZoom={true} // Enables mouse wheel zoom
+            doubleClickZoom={true} // Enables double-tap to zoom
+            tap={false} // Improves touch panning on mobile WebKit/Blink
             zoomControl={false} // We can add a custom one if needed, or keep default. Let's keep default actually, or false if it overlaps UI.
         >
             <TileLayer

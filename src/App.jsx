@@ -9,7 +9,6 @@ import AuthModal from './components/AuthModal';
 import Statistics from './components/Statistics';
 import Settings from './components/Settings';
 import HowToPlay from './components/HowToPlay';
-import BackgroundMusic from './components/BackgroundMusic';
 
 function AppContent() {
   const [authOpen, setAuthOpen] = useState(false);
@@ -49,8 +48,6 @@ function AppContent() {
       {/* Global Modals */}
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onLogin={() => {}} />}
       
-      {/* Global Background Music */}
-      <BackgroundMusic />
     </div>
   );
 }
