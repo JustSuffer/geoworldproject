@@ -34,14 +34,34 @@ function MapRecenter({ position }) {
 }
 
 export default function MapView() {
-    const { userLocation, spheres } = useGame();
+    const { userLocation, spheres, locationError } = useGame();
 
     if (!userLocation) {
         return <div className="h-full w-full flex items-center justify-center text-white bg-gray-800">
-            <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p>Acquiring GPS Location...</p>
-                <p className="text-xs text-gray-400 mt-2">Please allow location access</p>
+            <div className="text-center px-4">
+                {!locationError && <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>}
+                
+                {locationError ? (
+                    <>
+                        <div className="text-red-500 mb-2">
+                            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <p className="text-red-400 font-medium">{locationError}</p>
+                        <button 
+                            onClick={() => window.location.reload()} 
+                            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80 transition-colors"
+                        >
+                            Retry
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <p>Acquiring GPS Location...</p>
+                        <p className="text-xs text-gray-400 mt-2">Please allow location access and wait</p>
+                    </>
+                )}
             </div>
         </div>;
     }

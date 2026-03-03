@@ -121,6 +121,7 @@ export function GameProvider({ children }) {
   });
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [locationError, setLocationError] = useState(null);
   
   // Live Tracking
   const [startTime, setStartTime] = useState(() => {
@@ -186,9 +187,26 @@ export function GameProvider({ children }) {
   useEffect(() => {
     if (!navigator.geolocation) {
       console.error("Geolocation is not supported");
+      setLocationError("Geolocation is not supported");
       setLoading(false);
       return;
     }
+
+    // Try to get a quick initial position first
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        if (!userLocation) {
+             setUserLocation([latitude, longitude]);
+        }
+        setLocationError(null);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Initial position error:", error);
+      },
+      { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 }
+    );
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
@@ -196,21 +214,24 @@ export function GameProvider({ children }) {
         const newLoc = [latitude, longitude];
         
         setUserLocation(newLoc);
+        setLocationError(null);
         setLoading(false);
-
-        // Calculate distance walked
-        // We need to use a ref or functional update to access the latest lastLocation if we don't want to re-subscribe
-        // But here we are inside the callback. The callback might capture the initial 'lastLocation' (null).
-        // To fix this without re-subscribing, we can use a ref for lastLocation.
       },
       (error) => {
         console.error("Error watching position:", error);
+        if (error.code === 1) {
+             setLocationError("Please allow browser location access.");
+        } else if (error.code === 3) {
+             setLocationError("GPS signal lost or timed out...");
+        } else {
+             setLocationError("Error acquiring GPS: " + error.message);
+        }
         setLoading(false);
       },
       { 
           enableHighAccuracy: true, 
-          maximumAge: 0, 
-          timeout: 20000 
+          maximumAge: 5000, 
+          timeout: 10000 
       }
     );
 
@@ -338,6 +359,7 @@ export function GameProvider({ children }) {
         foundLetters, 
         score, 
         loading,
+        locationError,
         gameMode,
         setGameMode,
         gameLanguage,
