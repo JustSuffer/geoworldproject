@@ -13,7 +13,8 @@ const MAX_GUESSES = 5;
 export default function WordleGame({ onStats }) {
     const { 
         dailyWord, foundLetters, gameMode, newGame, startTime, distanceWalked,
-        guesses, setGuesses, currentGuess, setCurrentGuess, gameStatus, setGameStatus
+        guesses, setGuesses, currentGuess, setCurrentGuess, gameStatus, setGameStatus,
+        stats, updateStats, loadStats
     } = useGame();
     const [statsOpen, setStatsOpen] = useState(false);
     const [authOpen, setAuthOpen] = useState(false);
@@ -22,14 +23,6 @@ export default function WordleGame({ onStats }) {
     const [timeLeft, setTimeLeft] = useState('');
     const [elapsedTime, setElapsedTime] = useState('00:00:00');
     const [showLiveStats, setShowLiveStats] = useState(false);
-    
-    const [stats, setStats] = useState({
-        played: 0,
-        winRate: 0,
-        currentStreak: 0,
-        maxStreak: 0,
-        distribution: [0, 0, 0, 0, 0, 0]
-    });
 
     // Reset game when dailyWord changes (or mode changes)
     // Reset effect removed - handled in GameContext
@@ -78,76 +71,41 @@ export default function WordleGame({ onStats }) {
     // Load stats from Supabase or LocalStorage on mount
     useEffect(() => {
         checkUser();
-        loadStats();
+        // loadStats is handled inside checkUser now
     }, []);
 
     const checkUser = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
-        if (user) loadStats(user.id);
+        loadStats(user?.id, supabase);
     };
+
+    // Close Modals and Resets on Daily Word Change
+    useEffect(() => {
+        if (!dailyWord) return;
+        // If we are showing the stats modal but the game status got reset to 'playing',
+        // it means we rolled over to a new word/day locally
+        if (gameStatus === 'playing') {
+            setStatsOpen(false);
+            setElapsedTime('00:00:00');
+        }
+    }, [dailyWord, gameStatus]);
 
     // Check game status
     useEffect(() => {
         if (guesses.length > 0) {
             const lastGuess = guesses[guesses.length - 1];
-            if (lastGuess.toUpperCase() === dailyWord.toUpperCase()) {
+            if (lastGuess.toUpperCase() === dailyWord.toUpperCase() && gameStatus !== 'won') {
                 setGameStatus('won');
-                updateStats(true, guesses.length);
+                updateStats(true, guesses.length, supabase, user);
                 setStatsOpen(true);
-            } else if (guesses.length >= MAX_GUESSES) {
+            } else if (guesses.length >= MAX_GUESSES && gameStatus !== 'lost') {
                 setGameStatus('lost');
-                updateStats(false, 0);
+                updateStats(false, 0, supabase, user);
                 setStatsOpen(true);
             }
         }
     }, [guesses]);
-
-    const loadStats = async (userId) => {
-        let localStats = JSON.parse(localStorage.getItem('wordleStats')) || {
-            played: 0, wins: 0, currentStreak: 0, maxStreak: 0, distribution: {1:0, 2:0, 3:0, 4:0, 5:0}
-        };
-
-        if (userId) {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('stats')
-                .eq('id', userId)
-                .single();
-            
-            if (data && data.stats) {
-                localStats = { ...localStats, ...data.stats };
-            }
-        }
-        
-        const winRate = localStats.played > 0 ? Math.round((localStats.wins / localStats.played) * 100) : 0;
-        setStats({ ...localStats, winRate });
-    };
-
-    const updateStats = async (won, guessCount) => {
-        const newStats = { ...stats };
-        newStats.played += 1;
-        if (won) {
-            newStats.wins = (newStats.wins || 0) + 1;
-            newStats.currentStreak += 1;
-            newStats.maxStreak = Math.max(newStats.maxStreak, newStats.currentStreak);
-            newStats.distribution[guessCount] = (newStats.distribution[guessCount] || 0) + 1;
-        } else {
-            newStats.currentStreak = 0;
-        }
-        
-        newStats.winRate = Math.round((newStats.wins / newStats.played) * 100);
-        setStats(newStats);
-        localStorage.setItem('wordleStats', JSON.stringify(newStats));
-
-        if (user) {
-            await supabase.from('profiles').upsert({ 
-                id: user.id,
-                updated_at: new Date(),
-                stats: newStats
-            });
-        }
-    };
 
     const handleKeyup = (key) => {
         if (gameStatus !== 'playing') return;

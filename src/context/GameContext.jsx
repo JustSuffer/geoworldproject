@@ -14,6 +14,80 @@ export function GameProvider({ children }) {
       const saved = localStorage.getItem('gameState');
       return saved ? (JSON.parse(saved).gameLanguage || 'tr') : 'tr';
   });
+
+  // Global Stats & History
+  const [stats, setStats] = useState(() => {
+    const saved = localStorage.getItem('wordleStats');
+    return saved ? JSON.parse(saved) : {
+      played: 0,
+      wins: 0,
+      currentStreak: 0,
+      maxStreak: 0,
+      distribution: {1:0, 2:0, 3:0, 4:0, 5:0, 6:0},
+      history: {} // { 'YYYY-MM-DD': 'won' | 'lost' }
+    };
+  });
+
+  const loadStats = async (userId, supabase) => {
+    let localStats = JSON.parse(localStorage.getItem('wordleStats')) || {
+        played: 0, wins: 0, currentStreak: 0, maxStreak: 0, distribution: {1:0, 2:0, 3:0, 4:0, 5:0, 6:0}, history: {}
+    };
+
+    if (userId && supabase) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('stats')
+            .eq('id', userId)
+            .single();
+        
+        if (data && data.stats) {
+            // merge history carefully
+            const mergedHistory = { ...localStats.history, ...(data.stats.history || {}) };
+            localStats = { ...localStats, ...data.stats, history: mergedHistory };
+        }
+    }
+    
+    // Ensure winRate is computed but we do it on the fly or keep it in state
+    localStats.winRate = localStats.played > 0 ? Math.round((localStats.wins / localStats.played) * 100) : 0;
+    setStats(localStats);
+  };
+
+  const updateStats = async (won, guessCount, supabaseObj, userObj) => {
+      const newStats = { ...stats };
+      newStats.played += 1;
+      
+      const todayDateStr = new Date().toISOString().split('T')[0];
+      
+      // Ensure history object exists
+      if (!newStats.history) newStats.history = {};
+
+      if (won) {
+          newStats.wins = (newStats.wins || 0) + 1;
+          newStats.currentStreak += 1;
+          newStats.maxStreak = Math.max(newStats.maxStreak || 0, newStats.currentStreak);
+          
+          if (guessCount) {
+             newStats.distribution[guessCount] = (newStats.distribution[guessCount] || 0) + 1;
+          }
+          newStats.history[todayDateStr] = 'won';
+      } else {
+          newStats.currentStreak = 0;
+          newStats.history[todayDateStr] = 'lost';
+      }
+      
+      newStats.winRate = Math.round((newStats.wins / newStats.played) * 100);
+      setStats(newStats);
+      localStorage.setItem('wordleStats', JSON.stringify(newStats));
+
+      if (userObj && supabaseObj) {
+          await supabaseObj.from('profiles').upsert({ 
+              id: userObj.id,
+              updated_at: new Date(),
+              stats: newStats
+          });
+      }
+  };
+
   
   // Word Pools
   const WORDS_TR = [
@@ -28,10 +102,18 @@ export function GameProvider({ children }) {
 
   const getDailyWord = (lang) => {
     const pool = lang === 'en' ? WORDS_EN : WORDS_TR;
-    const epochMs = new Date(2024, 0, 1).valueOf();
-    const now = Date.now();
+    
+    // Use local Date to find exactly how many days have passed in local time
+    const now = new Date();
+    // Midnight today local time
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Arbitrary epoch: Jan 1, 2024 local time
+    const epoch = new Date(2024, 0, 1);
+    
     const msPerDay = 86400000;
-    const index = Math.floor((now - epochMs) / msPerDay) % pool.length;
+    // Calculate days strictly by timezone date diff
+    const index = Math.floor((midnight - epoch) / msPerDay) % pool.length;
+    
     return pool[index];
   };
 
@@ -103,11 +185,12 @@ export function GameProvider({ children }) {
               setGuesses([]);
               setCurrentGuess('');
               setGameStatus('playing');
-              setIsGameStarted(false); // Reset start status for new day? Or keep it? Maybe false to force "Play" again?
+              setIsGameStarted(false); // Clear game started to remove continue button
           }
       };
       
-      const interval = setInterval(checkMidnight, 60000);
+      // Check every 1 second to make the UI refresh precisely at midnight
+      const interval = setInterval(checkMidnight, 1000);
       return () => clearInterval(interval);
   }, [dailyWord, gameMode, gameLanguage]);
 
@@ -376,7 +459,12 @@ export function GameProvider({ children }) {
         setGameStatus,
         isGameStarted,
         setIsGameStarted,
-        resetGame
+        resetGame,
+        // Stats
+        stats,
+        setStats,
+        loadStats,
+        updateStats
     }}>
       {children}
     </GameContext.Provider>
