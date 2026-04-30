@@ -107,58 +107,7 @@ export default function WordleGame({ onStats }) {
         }
     }, [guesses]);
 
-    const loadStats = async (userId) => {
-        let localStats = JSON.parse(localStorage.getItem('wordleStats')) || {
-            played: 0, wins: 0, currentStreak: 0, maxStreak: 0, distribution: {1:0, 2:0, 3:0, 4:0, 5:0}, lastPlayedDayIndex: null
-        };
 
-        const currentDayIndex = Math.floor((Date.now() - new Date(2024, 0, 1).valueOf()) / 86400000);
-        if (localStats.lastPlayedDayIndex !== undefined && localStats.lastPlayedDayIndex !== null && localStats.lastPlayedDayIndex < currentDayIndex - 1) {
-            localStats.currentStreak = 0;
-            localStorage.setItem('wordleStats', JSON.stringify(localStats));
-        }
-
-        if (userId) {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('stats')
-                .eq('id', userId)
-                .single();
-            
-            if (data && data.stats) {
-                localStats = { ...localStats, ...data.stats };
-            }
-        }
-        
-        const winRate = localStats.played > 0 ? Math.round((localStats.wins / localStats.played) * 100) : 0;
-        setStats({ ...localStats, winRate });
-    };
-
-    const updateStats = async (won, guessCount) => {
-        const newStats = { ...stats };
-        newStats.played += 1;
-        if (won) {
-            newStats.wins = (newStats.wins || 0) + 1;
-            newStats.currentStreak += 1;
-            newStats.maxStreak = Math.max(newStats.maxStreak, newStats.currentStreak);
-            newStats.distribution[guessCount] = (newStats.distribution[guessCount] || 0) + 1;
-        } else {
-            newStats.currentStreak = 0;
-        }
-        
-        newStats.lastPlayedDayIndex = Math.floor((Date.now() - new Date(2024, 0, 1).valueOf()) / 86400000);
-        newStats.winRate = Math.round((newStats.wins / newStats.played) * 100);
-        setStats(newStats);
-        localStorage.setItem('wordleStats', JSON.stringify(newStats));
-
-        if (user) {
-            await supabase.from('profiles').upsert({ 
-                id: user.id,
-                updated_at: new Date(),
-                stats: newStats
-            });
-        }
-    };
 
     const handleKeyup = (key) => {
         if (gameStatus !== 'playing') return;
