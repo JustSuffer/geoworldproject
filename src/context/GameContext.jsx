@@ -114,6 +114,13 @@ export function GameProvider({ children }) {
     return pool[Math.floor(Math.random() * pool.length)];
   };
 
+  const getDailyIndex = () => {
+    const epochMs = new Date(2024, 0, 1).valueOf();
+    const now = Date.now();
+    const msPerDay = 86400000;
+    return Math.floor((now - epochMs) / msPerDay);
+  };
+
   const [dailyWord, setDailyWord] = useState(() => {
       const saved = localStorage.getItem('gameState');
       return saved ? (JSON.parse(saved).savedWord || "") : "";
