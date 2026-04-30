@@ -24,13 +24,16 @@ export function GameProvider({ children }) {
     "FOREST", "ISLAND", "GARDEN", "TRAVEL", "WINTER", "SUMMER", "NATURE", "ENERGY"
   ];
 
-  const getDailyWord = (lang) => {
-    const pool = lang === 'en' ? WORDS_EN : WORDS_TR;
+  const getDailyIndex = () => {
     const epochMs = new Date(2024, 0, 1).valueOf();
     const now = Date.now();
     const msPerDay = 86400000;
-    const index = Math.floor((now - epochMs) / msPerDay) % pool.length;
-    return pool[index];
+    return Math.floor((now - epochMs) / msPerDay);
+  };
+
+  const getDailyWord = (lang) => {
+    const pool = lang === 'en' ? WORDS_EN : WORDS_TR;
+    return pool[getDailyIndex() % pool.length];
   };
 
   const getRandomWord = (lang) => {
@@ -58,6 +61,19 @@ export function GameProvider({ children }) {
           setCurrentGuess(parsed.currentGuess || '');
           setGameStatus(parsed.gameStatus || 'playing');
           setIsGameStarted(parsed.isGameStarted || false);
+          
+          const currentDayIndex = getDailyIndex();
+          const isDailyAndDayChanged = (parsed.gameMode || 'daily') === 'daily' && parsed.savedDayIndex !== undefined && parsed.savedDayIndex !== currentDayIndex;
+          
+          if (parsed.savedWord && parsed.savedWord !== (parsed.gameMode === 'daily' ? getDailyWord(parsed.gameLanguage || 'tr') : parsed.savedWord) || isDailyAndDayChanged) {
+              setGuesses([]);
+              setCurrentGuess('');
+              setGameStatus('playing');
+              setIsGameStarted(false);
+              setSpheres([]);
+              setStartTime(Date.now());
+              setDistanceWalked(0);
+          }
         }
       } catch (e) {
         console.error("Failed to load state", e);
@@ -163,6 +179,7 @@ export function GameProvider({ children }) {
                 gameStatus,
                 isGameStarted,
                 savedWord: dailyWord,
+                savedDayIndex: getDailyIndex(),
                 startTime,
                 spheres,
                 foundLetters,
@@ -183,7 +200,10 @@ export function GameProvider({ children }) {
       const checkReset = async () => {
         const saved = await AsyncStorage.getItem('gameState');
         const parsed = saved ? JSON.parse(saved) : {};
-        if (parsed.savedWord !== dailyWord) {
+        const currentDayIndex = getDailyIndex();
+        const isDailyAndDayChanged = gameMode === 'daily' && parsed.savedDayIndex !== undefined && parsed.savedDayIndex !== currentDayIndex;
+
+        if (parsed.savedWord !== dailyWord || isDailyAndDayChanged) {
             setStartTime(Date.now());
             setDistanceWalked(0);
             setLastLocation(null);

@@ -26,13 +26,16 @@ export function GameProvider({ children }) {
     "FOREST", "ISLAND", "GARDEN", "TRAVEL", "WINTER", "SUMMER", "NATURE", "ENERGY"
   ];
 
-  const getDailyWord = (lang) => {
-    const pool = lang === 'en' ? WORDS_EN : WORDS_TR;
+  const getDailyIndex = () => {
     const epochMs = new Date(2024, 0, 1).valueOf();
     const now = Date.now();
     const msPerDay = 86400000;
-    const index = Math.floor((now - epochMs) / msPerDay) % pool.length;
-    return pool[index];
+    return Math.floor((now - epochMs) / msPerDay);
+  };
+
+  const getDailyWord = (lang) => {
+    const pool = lang === 'en' ? WORDS_EN : WORDS_TR;
+    return pool[getDailyIndex() % pool.length];
   };
 
   const getRandomWord = (lang) => {
@@ -160,6 +163,7 @@ export function GameProvider({ children }) {
           gameStatus,
           isGameStarted,
           savedWord: dailyWord,
+          savedDayIndex: getDailyIndex(),
           startTime,
           spheres,
           foundLetters,
@@ -176,12 +180,15 @@ export function GameProvider({ children }) {
       const saved = localStorage.getItem('gameState');
       const parsed = saved ? JSON.parse(saved) : {};
       
-      if (parsed.savedWord !== dailyWord) {
+      const currentDayIndex = getDailyIndex();
+      const isDailyAndDayChanged = gameMode === 'daily' && parsed.savedDayIndex !== undefined && parsed.savedDayIndex !== currentDayIndex;
+
+      if (parsed.savedWord !== dailyWord || isDailyAndDayChanged) {
           setStartTime(Date.now());
           setDistanceWalked(0);
           setLastLocation(null);
       }
-  }, [dailyWord]);
+  }, [dailyWord, gameMode]);
 
   // Watch location
   useEffect(() => {
@@ -245,8 +252,11 @@ export function GameProvider({ children }) {
       const saved = localStorage.getItem('gameState');
       if (saved) {
           const parsed = JSON.parse(saved);
+          const currentDayIndex = getDailyIndex();
+          const isDailyAndDayChanged = gameMode === 'daily' && parsed.savedDayIndex !== undefined && parsed.savedDayIndex !== currentDayIndex;
+          
           // If saved word exists and is different from current dailyWord, reset
-          if (parsed.savedWord && parsed.savedWord !== dailyWord) {
+          if ((parsed.savedWord && parsed.savedWord !== dailyWord) || isDailyAndDayChanged) {
               setGuesses([]);
               setCurrentGuess('');
               setGameStatus('playing');
@@ -254,7 +264,7 @@ export function GameProvider({ children }) {
               setSpheres([]); // Clear spheres if word mismatch
           }
       }
-  }, [dailyWord]);
+  }, [dailyWord, gameMode]);
 
   // Separate effect for distance calculation to handle state updates correctly
   useEffect(() => {

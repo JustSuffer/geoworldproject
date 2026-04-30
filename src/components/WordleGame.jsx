@@ -105,8 +105,14 @@ export default function WordleGame({ onStats }) {
 
     const loadStats = async (userId) => {
         let localStats = JSON.parse(localStorage.getItem('wordleStats')) || {
-            played: 0, wins: 0, currentStreak: 0, maxStreak: 0, distribution: {1:0, 2:0, 3:0, 4:0, 5:0}
+            played: 0, wins: 0, currentStreak: 0, maxStreak: 0, distribution: {1:0, 2:0, 3:0, 4:0, 5:0}, lastPlayedDayIndex: null
         };
+
+        const currentDayIndex = Math.floor((Date.now() - new Date(2024, 0, 1).valueOf()) / 86400000);
+        if (localStats.lastPlayedDayIndex !== undefined && localStats.lastPlayedDayIndex !== null && localStats.lastPlayedDayIndex < currentDayIndex - 1) {
+            localStats.currentStreak = 0;
+            localStorage.setItem('wordleStats', JSON.stringify(localStats));
+        }
 
         if (userId) {
             const { data, error } = await supabase
@@ -136,6 +142,7 @@ export default function WordleGame({ onStats }) {
             newStats.currentStreak = 0;
         }
         
+        newStats.lastPlayedDayIndex = Math.floor((Date.now() - new Date(2024, 0, 1).valueOf()) / 86400000);
         newStats.winRate = Math.round((newStats.wins / newStats.played) * 100);
         setStats(newStats);
         localStorage.setItem('wordleStats', JSON.stringify(newStats));
