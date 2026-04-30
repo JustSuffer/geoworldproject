@@ -13,7 +13,8 @@ const MAX_GUESSES = 5;
 export default function WordleGame({ onStats }) {
     const { 
         dailyWord, foundLetters, gameMode, newGame, startTime, distanceWalked,
-        guesses, setGuesses, currentGuess, setCurrentGuess, gameStatus, setGameStatus
+        guesses, setGuesses, currentGuess, setCurrentGuess, gameStatus, setGameStatus,
+        stats, updateStats, loadStats
     } = useGame();
     const [statsOpen, setStatsOpen] = useState(false);
     const [authOpen, setAuthOpen] = useState(false);
@@ -22,14 +23,6 @@ export default function WordleGame({ onStats }) {
     const [timeLeft, setTimeLeft] = useState('');
     const [elapsedTime, setElapsedTime] = useState('00:00:00');
     const [showLiveStats, setShowLiveStats] = useState(false);
-    
-    const [stats, setStats] = useState({
-        played: 0,
-        winRate: 0,
-        currentStreak: 0,
-        maxStreak: 0,
-        distribution: [0, 0, 0, 0, 0, 0]
-    });
 
     // Reset game when dailyWord changes (or mode changes)
     // Reset effect removed - handled in GameContext
@@ -78,26 +71,37 @@ export default function WordleGame({ onStats }) {
     // Load stats from Supabase or LocalStorage on mount
     useEffect(() => {
         checkUser();
-        loadStats();
+        // loadStats is handled inside checkUser now
     }, []);
 
     const checkUser = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
-        if (user) loadStats(user.id);
+        loadStats(user?.id, supabase);
     };
+
+    // Close Modals and Resets on Daily Word Change
+    useEffect(() => {
+        if (!dailyWord) return;
+        // If we are showing the stats modal but the game status got reset to 'playing',
+        // it means we rolled over to a new word/day locally
+        if (gameStatus === 'playing') {
+            setStatsOpen(false);
+            setElapsedTime('00:00:00');
+        }
+    }, [dailyWord, gameStatus]);
 
     // Check game status
     useEffect(() => {
         if (guesses.length > 0) {
             const lastGuess = guesses[guesses.length - 1];
-            if (lastGuess.toUpperCase() === dailyWord.toUpperCase()) {
+            if (lastGuess.toUpperCase() === dailyWord.toUpperCase() && gameStatus !== 'won') {
                 setGameStatus('won');
-                updateStats(true, guesses.length);
+                updateStats(true, guesses.length, supabase, user);
                 setStatsOpen(true);
-            } else if (guesses.length >= MAX_GUESSES) {
+            } else if (guesses.length >= MAX_GUESSES && gameStatus !== 'lost') {
                 setGameStatus('lost');
-                updateStats(false, 0);
+                updateStats(false, 0, supabase, user);
                 setStatsOpen(true);
             }
         }
@@ -272,10 +276,10 @@ export default function WordleGame({ onStats }) {
             <div 
                 onClick={handleGameClick}
                 className={`
-                pointer-events-auto w-[95%] md:w-full bg-gray-900/95 border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.8)] 
+                ${isVisible ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-20 opacity-0'}
+                w-[95%] md:w-full bg-gray-900/95 border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.8)] 
                 pt-4 pb-4 px-2 md:pt-8 md:pb-6 md:px-4 
                 flex flex-col items-center transition-all duration-500 transform rounded-3xl
-                ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}
             `}>
                 {/* Hidden Input for Mobile Keyboard */}
                 <input

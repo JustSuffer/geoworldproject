@@ -82,7 +82,6 @@ export default function MapView() {
             touchZoom={true} // Enables two-finger pinch-to-zoom
             scrollWheelZoom={true} // Enables mouse wheel zoom
             doubleClickZoom={true} // Enables double-tap to zoom
-            tap={false} // Improves touch panning on mobile WebKit/Blink
             zoomControl={false} // We can add a custom one if needed, or keep default. Let's keep default actually, or false if it overlaps UI.
         >
             <TileLayer

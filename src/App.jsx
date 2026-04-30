@@ -9,9 +9,12 @@ import AuthModal from './components/AuthModal';
 import Statistics from './components/Statistics';
 import Settings from './components/Settings';
 import HowToPlay from './components/HowToPlay';
+import StreakHeader from './components/StreakHeader';
+import CalendarModal from './components/CalendarModal';
 
 function AppContent() {
   const [authOpen, setAuthOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const location = useLocation();
 
   return (
@@ -20,6 +23,8 @@ function AppContent() {
       <div className="absolute inset-0 z-0">
         <MapView />
       </div>
+
+      <StreakHeader onCalendarClick={() => setIsCalendarOpen(true)} />
 
       <Routes>
         <Route path="/" element={<MainMenu onAuth={() => setAuthOpen(true)} />} />
@@ -47,6 +52,7 @@ function AppContent() {
 
       {/* Global Modals */}
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onLogin={() => {}} />}
+      {isCalendarOpen && <CalendarModal onClose={() => setIsCalendarOpen(false)} />}
       
     </div>
   );
