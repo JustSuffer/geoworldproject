@@ -234,6 +234,31 @@ export function GameProvider({ children }) {
       return saved ? JSON.parse(saved).isGameStarted : false;
   });
 
+  // Validate saved state against current word and reset if needed
+  useEffect(() => {
+      if (!dailyWord) return;
+      
+      const saved = localStorage.getItem('gameState');
+      if (saved) {
+          const parsed = JSON.parse(saved);
+          const currentDayIndex = getDailyIndex();
+          const isDailyAndDayChanged = gameMode === 'daily' && parsed.savedDayIndex !== undefined && parsed.savedDayIndex !== currentDayIndex;
+          
+          const isInvalidState = parsed.gameStatus !== 'playing' && (!parsed.guesses || parsed.guesses.length === 0);
+
+          if ((parsed.savedWord && parsed.savedWord !== dailyWord) || isDailyAndDayChanged || isInvalidState) {
+              setGuesses([]);
+              setCurrentGuess('');
+              setGameStatus('playing');
+              setIsGameStarted(false);
+              setSpheres([]);
+              setStartTime(Date.now());
+              setDistanceWalked(0);
+              setLastLocation(null);
+          }
+      }
+  }, [dailyWord, gameMode]);
+
   // Save game state to local storage
   useEffect(() => {
       localStorage.setItem('gameState', JSON.stringify({
@@ -251,23 +276,6 @@ export function GameProvider({ children }) {
           gameLanguage
       }));
   }, [guesses, currentGuess, gameStatus, isGameStarted, dailyWord, spheres, foundLetters, distanceWalked, gameMode, gameLanguage]);
-
-  // Reset tracking on new game
-  useEffect(() => {
-      if (!dailyWord) return;
-      
-      const saved = localStorage.getItem('gameState');
-      const parsed = saved ? JSON.parse(saved) : {};
-      
-      const currentDayIndex = getDailyIndex();
-      const isDailyAndDayChanged = gameMode === 'daily' && parsed.savedDayIndex !== undefined && parsed.savedDayIndex !== currentDayIndex;
-
-      if (parsed.savedWord !== dailyWord || isDailyAndDayChanged) {
-          setStartTime(Date.now());
-          setDistanceWalked(0);
-          setLastLocation(null);
-      }
-  }, [dailyWord, gameMode]);
 
   // Watch location
   useEffect(() => {
@@ -324,26 +332,7 @@ export function GameProvider({ children }) {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  // Validate saved state against current word
-  useEffect(() => {
-      if (!dailyWord) return;
-      
-      const saved = localStorage.getItem('gameState');
-      if (saved) {
-          const parsed = JSON.parse(saved);
-          const currentDayIndex = getDailyIndex();
-          const isDailyAndDayChanged = gameMode === 'daily' && parsed.savedDayIndex !== undefined && parsed.savedDayIndex !== currentDayIndex;
-          
-          // If saved word exists and is different from current dailyWord, reset
-          if ((parsed.savedWord && parsed.savedWord !== dailyWord) || isDailyAndDayChanged) {
-              setGuesses([]);
-              setCurrentGuess('');
-              setGameStatus('playing');
-              setIsGameStarted(false);
-              setSpheres([]); // Clear spheres if word mismatch
-          }
-      }
-  }, [dailyWord, gameMode]);
+
 
   // Separate effect for distance calculation to handle state updates correctly
   useEffect(() => {
