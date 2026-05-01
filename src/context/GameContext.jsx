@@ -210,6 +210,10 @@ export function GameProvider({ children }) {
       const saved = localStorage.getItem('gameState');
       return saved ? (JSON.parse(saved).startTime || Date.now()) : Date.now();
   });
+  const [endTime, setEndTime] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved ? (JSON.parse(saved).endTime || null) : null;
+  });
   const [distanceWalked, setDistanceWalked] = useState(() => {
       const saved = localStorage.getItem('gameState');
       return saved ? (JSON.parse(saved).distanceWalked || 0) : 0;
@@ -253,6 +257,7 @@ export function GameProvider({ children }) {
               setIsGameStarted(false);
               setSpheres([]);
               setStartTime(Date.now());
+              setEndTime(null);
               setDistanceWalked(0);
               setLastLocation(null);
           }
@@ -269,13 +274,14 @@ export function GameProvider({ children }) {
           savedWord: dailyWord,
           savedDayIndex: getDailyIndex(),
           startTime,
+          endTime,
           spheres,
           foundLetters,
           distanceWalked,
           gameMode,
           gameLanguage
       }));
-  }, [guesses, currentGuess, gameStatus, isGameStarted, dailyWord, spheres, foundLetters, distanceWalked, gameMode, gameLanguage]);
+  }, [guesses, currentGuess, gameStatus, isGameStarted, dailyWord, spheres, foundLetters, distanceWalked, gameMode, gameLanguage, endTime]);
 
   // Watch location
   useEffect(() => {
@@ -336,6 +342,8 @@ export function GameProvider({ children }) {
 
   // Separate effect for distance calculation to handle state updates correctly
   useEffect(() => {
+      if (gameStatus !== 'playing') return;
+
       if (userLocation) {
           if (lastLocation) {
             const from = turf.point([lastLocation[1], lastLocation[0]]);
@@ -351,7 +359,7 @@ export function GameProvider({ children }) {
               setLastLocation(userLocation);
           }
       }
-  }, [userLocation]);
+  }, [userLocation, gameStatus]);
 
   // Generate spheres or update letters
   useEffect(() => {
@@ -444,6 +452,8 @@ export function GameProvider({ children }) {
         setGameLanguage,
         newGame,
         startTime,
+        endTime,
+        setEndTime,
         distanceWalked,
         // Game State for Persistence
         guesses,

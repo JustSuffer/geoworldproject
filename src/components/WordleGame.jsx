@@ -12,7 +12,7 @@ const MAX_GUESSES = 5;
 
 export default function WordleGame({ onStats }) {
     const { 
-        dailyWord, foundLetters, gameMode, newGame, startTime, distanceWalked,
+        dailyWord, foundLetters, gameMode, newGame, startTime, endTime, setEndTime, distanceWalked,
         guesses, setGuesses, currentGuess, setCurrentGuess, gameStatus, setGameStatus,
         stats, updateStats, loadStats
     } = useGame();
@@ -29,21 +29,24 @@ export default function WordleGame({ onStats }) {
 
     // Live Timer
     useEffect(() => {
-        if (gameStatus !== 'playing') return;
-
         const updateElapsed = () => {
-            const now = Date.now();
-            const diff = now - startTime;
+            const finalTime = endTime || Date.now();
+            const diff = Math.max(0, finalTime - startTime);
             const h = Math.floor(diff / (1000 * 60 * 60));
             const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const s = Math.floor((diff % (1000 * 60)) / 1000);
             setElapsedTime(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
         };
 
+        if (gameStatus !== 'playing') {
+            updateElapsed();
+            return;
+        }
+
         const interval = setInterval(updateElapsed, 1000);
         updateElapsed();
         return () => clearInterval(interval);
-    }, [startTime, gameStatus]);
+    }, [startTime, endTime, gameStatus]);
 
     // Timer for Daily Mode
     useEffect(() => {
@@ -97,10 +100,12 @@ export default function WordleGame({ onStats }) {
             const lastGuess = guesses[guesses.length - 1];
             if (lastGuess.toUpperCase() === dailyWord.toUpperCase() && gameStatus !== 'won') {
                 setGameStatus('won');
+                setEndTime(Date.now());
                 updateStats(true, guesses.length, supabase, user);
                 setStatsOpen(true);
             } else if (guesses.length >= MAX_GUESSES && gameStatus !== 'lost') {
                 setGameStatus('lost');
+                setEndTime(Date.now());
                 updateStats(false, 0, supabase, user);
                 setStatsOpen(true);
             }
