@@ -292,50 +292,54 @@ export function GameProvider({ children }) {
       return;
     }
 
-    // Try to get a quick initial position first
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
+    const handleSuccess = (position) => {
         const { latitude, longitude } = position.coords;
-        if (!userLocation) {
-             setUserLocation([latitude, longitude]);
-        }
+        setUserLocation([latitude, longitude]);
         setLocationError(null);
         setLoading(false);
-      },
-      (error) => {
-        console.error("Initial position error:", error);
-      },
-      { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 }
-    );
+    };
 
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const newLoc = [latitude, longitude];
-        
-        setUserLocation(newLoc);
-        setLocationError(null);
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error watching position:", error);
+    const handleError = (error) => {
+        console.error("Geolocation error:", error);
         if (error.code === 1) {
              setLocationError("Please allow browser location access.");
+             setLoading(false);
         } else if (error.code === 3) {
-             setLocationError("GPS signal lost or timed out...");
+             console.warn("GPS signal timed out, waiting for next update...");
         } else {
              setLocationError("Error acquiring GPS: " + error.message);
+             setLoading(false);
         }
-        setLoading(false);
-      },
-      { 
-          enableHighAccuracy: true, 
-          maximumAge: 5000, 
-          timeout: 10000 
-      }
+    };
+
+    const options = { 
+        enableHighAccuracy: true, 
+        maximumAge: 0, 
+        timeout: 5000 
+    };
+
+    // 1. Initial position
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            // Only use this if userLocation isn't set yet (closure trap avoided since it's initial)
+            handleSuccess(position);
+        },
+        (error) => console.error("Initial position error:", error),
+        { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 }
     );
 
-    return () => navigator.geolocation.clearWatch(watchId);
+    // 2. Watch position for native updates
+    const watchId = navigator.geolocation.watchPosition(handleSuccess, handleError, options);
+
+    // 3. Fallback interval for iOS/Safari stalling issues
+    const intervalId = setInterval(() => {
+        navigator.geolocation.getCurrentPosition(handleSuccess, handleError, options);
+    }, 3000);
+
+    return () => {
+        navigator.geolocation.clearWatch(watchId);
+        clearInterval(intervalId);
+    };
   }, []);
 
 
