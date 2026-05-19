@@ -10,15 +10,17 @@ import logo from '../assets/logo.png';
 export default function MainMenu({ onAuth }) {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const { setGameMode, setGameLanguage, newGame, isGameStarted, setIsGameStarted, resetGame } = useGame();
+    const { setGameMode, setGameLanguage, newGame, isGameStarted, setIsGameStarted, resetGame, setGameType, setGeodokuDifficulty } = useGame();
     const [setupOpen, setSetupOpen] = useState(false);
     const [showResetWarning, setShowResetWarning] = useState(false);
 
-    const handleGameStart = (mode, language) => {
-        resetGame(); // Ensure fresh start
+    const handleGameStart = (type, mode, language, difficulty) => {
+        setGameType(type);
         setGameMode(mode);
         setGameLanguage(language);
+        if (difficulty) setGeodokuDifficulty(difficulty);
         setIsGameStarted(true);
+        newGame(type, mode, language, difficulty); // Ensure fresh start and board generation
         navigate('/play');
     };
 

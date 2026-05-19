@@ -11,6 +11,16 @@ import Settings from './components/Settings';
 import HowToPlay from './components/HowToPlay';
 import StreakHeader from './components/StreakHeader';
 import CalendarModal from './components/CalendarModal';
+import GeodokuGame from './components/GeodokuGame';
+import { useGame } from './context/GameContext';
+
+function GameRenderer() {
+  const { gameType } = useGame();
+  if (gameType === 'geodoku') {
+    return <GeodokuGame />;
+  }
+  return <WordleGame onStats={() => {}} />;
+}
 
 function AppContent() {
   const [authOpen, setAuthOpen] = useState(false);
@@ -41,7 +51,7 @@ function AppContent() {
                 MENU
               </Link>
             </div>
-            <WordleGame onStats={() => {}} /> 
+            <GameRenderer /> 
           </div>
         } />
 
