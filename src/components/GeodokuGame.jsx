@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from '../context/GameContext';
-import { RefreshCw, Activity, Eye, EyeOff } from 'lucide-react';
+import { RefreshCw, Activity, Eye, EyeOff, Edit3, Undo, Eraser, Lightbulb } from 'lucide-react';
 
 export default function GeodokuGame() {
     const { 
@@ -12,15 +12,28 @@ export default function GeodokuGame() {
         const saved = localStorage.getItem('geodokuAnswers');
         return saved ? JSON.parse(saved) : {};
     });
+    
+    const [notes, setNotes] = useState(() => {
+        const saved = localStorage.getItem('geodokuNotes');
+        return saved ? JSON.parse(saved) : {};
+    });
+
+    const [history, setHistory] = useState([]);
+    
     const [selectedCell, setSelectedCell] = useState(null);
     const [isVisible, setIsVisible] = useState(true);
     const [showLiveStats, setShowLiveStats] = useState(false);
     const [elapsedTime, setElapsedTime] = useState('00:00:00');
+    const [notesMode, setNotesMode] = useState(false);
 
-    // Save answers to local storage
+    // Save state to local storage
     useEffect(() => {
         localStorage.setItem('geodokuAnswers', JSON.stringify(userAnswers));
     }, [userAnswers]);
+
+    useEffect(() => {
+        localStorage.setItem('geodokuNotes', JSON.stringify(notes));
+    }, [notes]);
 
     // Live Timer
     useEffect(() => {
@@ -62,60 +75,227 @@ export default function GeodokuGame() {
         }
     }, [userAnswers, geodokuRevealed, geodokuBoard, geodokuSolution, gameStatus, setGameStatus, setEndTime]);
 
-    // Clear user answers when a new board is loaded
+    // Clear answers/notes on new game
     useEffect(() => {
-        if (gameStatus === 'playing' && geodokuRevealed.length < 30 && Object.keys(userAnswers).length > 0) {
-            // Very simple heuristic to detect a fresh game: very few revealed cells and playing
-            // but actually we can just rely on user clearing. Wait, better to clear when newGame is called.
+        if (gameStatus === 'playing' && geodokuRevealed.length < 30 && Object.keys(userAnswers).length === 0 && Object.keys(notes).length === 0) {
+            setHistory([]);
         }
     }, [geodokuBoard]);
 
+    const getRowColBlock = (index) => {
+        const row = Math.floor(index / 9);
+        const col = index % 9;
+        const block = Math.floor(row / 3) * 3 + Math.floor(col / 3);
+        return { row, col, block };
+    };
+
+    const pushHistory = (action) => {
+        setHistory(prev => [...prev, action]);
+    };
+
     const handleCellClick = (index) => {
         if (gameStatus !== 'playing') return;
-        if (geodokuRevealed.includes(index)) return; // Cannot edit revealed cells
         setSelectedCell(index);
     };
 
-    const handleNumberInput = (num) => {
-        if (selectedCell === null || gameStatus !== 'playing') return;
-        setUserAnswers(prev => ({
-            ...prev,
-            [selectedCell]: num.toString()
-        }));
+    const autoRemoveNotes = (index, numStr) => {
+        const { row, col, block } = getRowColBlock(index);
+        const newNotes = { ...notes };
+        let notesChanged = false;
+        
+        for (let i = 0; i < 81; i++) {
+            if (i === index) continue;
+            const target = getRowColBlock(i);
+            if (target.row === row || target.col === col || target.block === block) {
+                if (newNotes[i] && newNotes[i].includes(numStr)) {
+                    newNotes[i] = newNotes[i].filter(n => n !== numStr);
+                    if (newNotes[i].length === 0) delete newNotes[i];
+                    notesChanged = true;
+                }
+            }
+        }
+        
+        if (notesChanged) {
+            setNotes(newNotes);
+            return newNotes; // Return updated notes for history
+        }
+        return notes;
     };
 
-    const handleClearCell = () => {
+    const handleNumberInput = useCallback((num) => {
         if (selectedCell === null || gameStatus !== 'playing') return;
-        setUserAnswers(prev => {
-            const next = { ...prev };
-            delete next[selectedCell];
-            return next;
+        if (geodokuRevealed.includes(selectedCell)) return; // Cannot edit revealed cells
+        
+        const numStr = num.toString();
+
+        if (notesMode) {
+            // Handle Notes
+            if (userAnswers[selectedCell]) return; // Don't add notes if there's a big number
+            
+            const currentNotes = notes[selectedCell] || [];
+            let updatedNotes;
+            if (currentNotes.includes(numStr)) {
+                updatedNotes = currentNotes.filter(n => n !== numStr);
+            } else {
+                updatedNotes = [...currentNotes, numStr].sort();
+            }
+            
+            const nextNotes = { ...notes };
+            if (updatedNotes.length > 0) {
+                nextNotes[selectedCell] = updatedNotes;
+            } else {
+                delete nextNotes[selectedCell];
+            }
+            
+            pushHistory({
+                type: 'note',
+                index: selectedCell,
+                prevNotes: notes,
+                newNotes: nextNotes
+            });
+            
+            setNotes(nextNotes);
+            
+        } else {
+            // Handle Normal Input
+            const prevValue = userAnswers[selectedCell];
+            if (prevValue === numStr) return; // Same number
+
+            const nextAnswers = { ...userAnswers, [selectedCell]: numStr };
+            const prevNotesState = notes;
+            
+            setUserAnswers(nextAnswers);
+            
+            // Auto remove notes
+            const nextNotesState = autoRemoveNotes(selectedCell, numStr);
+            
+            pushHistory({
+                type: 'answer',
+                index: selectedCell,
+                prevValue,
+                newValue: numStr,
+                prevNotes: prevNotesState,
+                newNotes: nextNotesState
+            });
+        }
+    }, [selectedCell, gameStatus, notesMode, geodokuRevealed, userAnswers, notes]);
+
+    const handleClearCell = useCallback(() => {
+        if (selectedCell === null || gameStatus !== 'playing') return;
+        if (geodokuRevealed.includes(selectedCell)) return; // Cannot edit revealed cells
+        
+        const prevValue = userAnswers[selectedCell];
+        const prevNotesForCell = notes[selectedCell];
+
+        if (!prevValue && !prevNotesForCell) return; // Nothing to clear
+
+        const nextAnswers = { ...userAnswers };
+        delete nextAnswers[selectedCell];
+        
+        const nextNotes = { ...notes };
+        delete nextNotes[selectedCell];
+
+        pushHistory({
+            type: 'clear',
+            index: selectedCell,
+            prevValue,
+            prevNotesState: notes,
+            newNotesState: nextNotes
         });
-    };
+
+        setUserAnswers(nextAnswers);
+        setNotes(nextNotes);
+    }, [selectedCell, gameStatus, geodokuRevealed, userAnswers, notes]);
+
+    const handleUndo = useCallback(() => {
+        if (gameStatus !== 'playing' || history.length === 0) return;
+        
+        const lastAction = history[history.length - 1];
+        setHistory(prev => prev.slice(0, -1));
+        
+        setSelectedCell(lastAction.index);
+
+        if (lastAction.type === 'note') {
+            setNotes(lastAction.prevNotes);
+        } else if (lastAction.type === 'answer') {
+            const nextAnswers = { ...userAnswers };
+            if (lastAction.prevValue) {
+                nextAnswers[lastAction.index] = lastAction.prevValue;
+            } else {
+                delete nextAnswers[lastAction.index];
+            }
+            setUserAnswers(nextAnswers);
+            setNotes(lastAction.prevNotes);
+        } else if (lastAction.type === 'clear') {
+            if (lastAction.prevValue) {
+                setUserAnswers(prev => ({ ...prev, [lastAction.index]: lastAction.prevValue }));
+            }
+            setNotes(lastAction.prevNotesState);
+        }
+    }, [history, gameStatus, userAnswers]);
+
+    const handleHint = useCallback(() => {
+        if (selectedCell === null || gameStatus !== 'playing') return;
+        if (geodokuRevealed.includes(selectedCell)) return;
+        if (userAnswers[selectedCell] === geodokuSolution[selectedCell]) return;
+
+        const correctNum = geodokuSolution[selectedCell];
+        
+        const prevValue = userAnswers[selectedCell];
+        const nextAnswers = { ...userAnswers, [selectedCell]: correctNum };
+        const prevNotesState = notes;
+        
+        setUserAnswers(nextAnswers);
+        const nextNotesState = autoRemoveNotes(selectedCell, correctNum);
+        
+        pushHistory({
+            type: 'answer',
+            index: selectedCell,
+            prevValue,
+            newValue: correctNum,
+            prevNotes: prevNotesState,
+            newNotes: nextNotesState
+        });
+
+    }, [selectedCell, gameStatus, geodokuRevealed, userAnswers, geodokuSolution, notes]);
+
 
     // Keyboard support
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (selectedCell === null || gameStatus !== 'playing') return;
+            if (gameStatus !== 'playing') return;
+            
             if (e.key >= '1' && e.key <= '9') {
                 handleNumberInput(e.key);
             } else if (e.key === 'Backspace' || e.key === 'Delete') {
                 handleClearCell();
-            } else if (e.key === 'ArrowUp' && selectedCell >= 9) {
-                setSelectedCell(selectedCell - 9);
-            } else if (e.key === 'ArrowDown' && selectedCell < 72) {
-                setSelectedCell(selectedCell + 9);
-            } else if (e.key === 'ArrowLeft' && selectedCell % 9 !== 0) {
-                setSelectedCell(selectedCell - 1);
-            } else if (e.key === 'ArrowRight' && selectedCell % 9 !== 8) {
-                setSelectedCell(selectedCell + 1);
+            } else if (e.key.toLowerCase() === 'n') {
+                setNotesMode(prev => !prev);
+            } else if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
+                handleUndo();
+            } else if (e.key === 'ArrowUp') {
+                setSelectedCell(prev => (prev === null ? 0 : (prev >= 9 ? prev - 9 : prev)));
+            } else if (e.key === 'ArrowDown') {
+                setSelectedCell(prev => (prev === null ? 0 : (prev < 72 ? prev + 9 : prev)));
+            } else if (e.key === 'ArrowLeft') {
+                setSelectedCell(prev => (prev === null ? 0 : (prev % 9 !== 0 ? prev - 1 : prev)));
+            } else if (e.key === 'ArrowRight') {
+                setSelectedCell(prev => (prev === null ? 0 : (prev % 9 !== 8 ? prev + 1 : prev)));
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedCell, gameStatus]);
+    }, [handleNumberInput, handleClearCell, handleUndo, gameStatus]);
 
     if (!geodokuBoard) return null;
+
+    const getHighlightedNumber = () => {
+        if (selectedCell === null) return null;
+        if (geodokuRevealed.includes(selectedCell)) return geodokuSolution[selectedCell];
+        return userAnswers[selectedCell] || null;
+    };
+
+    const activeNumber = getHighlightedNumber();
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[100dvh] w-full max-w-lg mx-auto pointer-events-none py-14 md:py-8">
@@ -162,38 +342,43 @@ export default function GeodokuGame() {
                 flex flex-col items-center transition-all duration-500 transform rounded-3xl
             `}>
                 
-                <div className="w-full max-w-[320px] md:max-w-[380px] mb-4 flex justify-between items-center text-white font-bold bg-black/40 p-3 rounded-xl border border-white/5">
+                <div className="w-full max-w-[340px] md:max-w-[400px] mb-4 flex justify-between items-center text-white font-bold bg-black/40 p-3 rounded-xl border border-white/5">
                     <button 
-                        onClick={() => { setUserAnswers({}); newGame(); }}
+                        onClick={() => { setUserAnswers({}); setNotes({}); setHistory([]); newGame(); }}
                         className="flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white transition-colors shadow-lg shadow-green-900/20"
                     >
                         <RefreshCw className="w-4 h-4" />
                         NEW GAME
                     </button>
-                    <div className="text-xs uppercase tracking-wider text-gray-400 font-semibold">
-                        GEODOKU - {geodokuDifficulty.toUpperCase()}
+                    <div className="text-xs uppercase tracking-wider text-gray-400 font-semibold flex flex-col items-end">
+                        <span>GEODOKU</span>
+                        <span className="text-primary">{geodokuDifficulty}</span>
                     </div>
                 </div>
 
                 {gameStatus === 'won' && (
-                    <div className="mb-4 bg-green-500/20 border border-green-500 text-green-400 p-3 rounded-xl font-bold w-full max-w-[320px] md:max-w-[380px] text-center">
-                        YOU SOLVED IT!
+                    <div className="mb-4 bg-green-500/20 border border-green-500 text-green-400 p-3 rounded-xl font-bold w-full max-w-[340px] md:max-w-[400px] text-center animate-pulse">
+                        🎉 YOU SOLVED IT! 🎉
                     </div>
                 )}
 
-                <div className="grid grid-cols-9 gap-0.5 md:gap-1 bg-gray-600 p-1 rounded-xl mb-4 md:mb-6 select-none w-[300px] md:w-[360px] h-[300px] md:h-[360px]">
+                {/* Main Grid */}
+                <div className="grid grid-cols-9 gap-[1px] md:gap-[2px] bg-gray-600 p-1 rounded-xl mb-4 md:mb-6 select-none w-[340px] md:w-[400px] h-[340px] md:h-[400px] shadow-2xl">
                     {Array.from({ length: 81 }).map((_, i) => {
-                        const row = Math.floor(i / 9);
-                        const col = i % 9;
+                        const { row, col, block } = getRowColBlock(i);
                         const isRevealed = geodokuRevealed.includes(i);
                         const value = isRevealed ? geodokuSolution[i] : userAnswers[i];
+                        const cellNotes = notes[i] || [];
+                        const isError = !isRevealed && value && value !== geodokuSolution[i];
                         
                         const isSelected = selectedCell === i;
-                        const isSameGroup = selectedCell !== null && !isSelected && (
-                            Math.floor(selectedCell / 9) === row || 
-                            selectedCell % 9 === col ||
-                            (Math.floor(Math.floor(selectedCell / 9) / 3) === Math.floor(row / 3) && Math.floor((selectedCell % 9) / 3) === Math.floor(col / 3))
-                        );
+                        let isSameGroup = false;
+                        if (selectedCell !== null && !isSelected) {
+                            const selectedTarget = getRowColBlock(selectedCell);
+                            isSameGroup = selectedTarget.row === row || selectedTarget.col === col || selectedTarget.block === block;
+                        }
+                        
+                        const isSameNumber = activeNumber && value === activeNumber && !isSelected;
 
                         // Calculate border radius for the board corners
                         let roundedClass = '';
@@ -202,51 +387,92 @@ export default function GeodokuGame() {
                         if (i === 72) roundedClass = 'rounded-bl-lg';
                         if (i === 80) roundedClass = 'rounded-br-lg';
 
+                        // Background Colors
                         let bgClass = 'bg-gray-800';
-                        if (isRevealed) bgClass = 'bg-gray-700 text-green-400 font-black'; // Revealed by moving
-                        else if (value) bgClass = 'bg-gray-800 text-blue-300 font-bold'; // User entered
-                        else bgClass = 'bg-gray-800 text-transparent'; // Empty
-                        
-                        if (isSelected) bgClass = 'bg-blue-600 text-white font-black';
-                        else if (isSameGroup) bgClass += ' brightness-150';
+                        if (isSelected) bgClass = 'bg-blue-600';
+                        else if (isError) bgClass = 'bg-red-900/50';
+                        else if (isSameNumber) bgClass = 'bg-blue-500/40';
+                        else if (isSameGroup) bgClass = 'bg-blue-900/30';
 
-                        // 3x3 grid borders
+                        // Text Colors
+                        let textClass = '';
+                        if (isRevealed) textClass = 'text-green-400 font-black';
+                        else if (isError) textClass = 'text-red-400 font-bold';
+                        else if (value) textClass = 'text-blue-300 font-bold';
+
+                        // 3x3 grid borders (thicker inner borders)
                         let borderClass = '';
-                        if (col === 2 || col === 5) borderClass += ' border-r-2 border-gray-900';
-                        if (row === 2 || row === 5) borderClass += ' border-b-2 border-gray-900';
+                        if (col === 2 || col === 5) borderClass += ' border-r-[2px] md:border-r-[3px] border-r-gray-900';
+                        if (row === 2 || row === 5) borderClass += ' border-b-[2px] md:border-b-[3px] border-b-gray-900';
 
                         return (
                             <div 
                                 key={i}
                                 onClick={() => handleCellClick(i)}
                                 className={`
-                                    flex items-center justify-center text-lg md:text-2xl cursor-pointer
-                                    transition-all duration-150
-                                    ${bgClass} ${roundedClass} ${borderClass}
+                                    relative flex items-center justify-center text-2xl md:text-3xl cursor-pointer
+                                    transition-colors duration-150
+                                    ${bgClass} ${roundedClass} ${borderClass} ${textClass}
                                 `}
                             >
-                                {value || ''}
+                                {value ? value : (
+                                    <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 p-0.5 pointer-events-none">
+                                        {[1,2,3,4,5,6,7,8,9].map(n => (
+                                            <div key={n} className="flex items-center justify-center text-[10px] md:text-xs text-gray-400 leading-none">
+                                                {cellNotes.includes(n.toString()) ? n : ''}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
                 </div>
 
-                <div className="grid grid-cols-5 gap-2 w-full max-w-[300px] md:max-w-[360px]">
+                {/* Toolbar */}
+                <div className="flex justify-between w-full max-w-[340px] md:max-w-[400px] mb-4 px-2">
+                    <button 
+                        onClick={handleUndo}
+                        disabled={history.length === 0}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${history.length > 0 ? 'text-white hover:bg-gray-800 active:scale-95' : 'text-gray-600'}`}
+                    >
+                        <div className="bg-gray-800 p-3 rounded-full"><Undo className="w-5 h-5" /></div>
+                        <span className="text-xs font-semibold">Undo</span>
+                    </button>
+                    <button 
+                        onClick={handleClearCell}
+                        className="flex flex-col items-center gap-1 p-2 rounded-xl text-white hover:bg-gray-800 transition-all active:scale-95"
+                    >
+                        <div className="bg-gray-800 p-3 rounded-full"><Eraser className="w-5 h-5" /></div>
+                        <span className="text-xs font-semibold">Erase</span>
+                    </button>
+                    <button 
+                        onClick={() => setNotesMode(!notesMode)}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all active:scale-95 ${notesMode ? 'text-blue-400' : 'text-white hover:bg-gray-800'}`}
+                    >
+                        <div className={`p-3 rounded-full transition-colors ${notesMode ? 'bg-blue-900/50' : 'bg-gray-800'}`}><Edit3 className="w-5 h-5" /></div>
+                        <span className="text-xs font-semibold">{notesMode ? 'Notes On' : 'Notes Off'}</span>
+                    </button>
+                    <button 
+                        onClick={handleHint}
+                        className="flex flex-col items-center gap-1 p-2 rounded-xl text-white hover:bg-gray-800 transition-all active:scale-95"
+                    >
+                        <div className="bg-gray-800 p-3 rounded-full"><Lightbulb className="w-5 h-5" /></div>
+                        <span className="text-xs font-semibold">Hint</span>
+                    </button>
+                </div>
+
+                {/* Numpad */}
+                <div className="grid grid-cols-5 gap-2 md:gap-3 w-full max-w-[340px] md:max-w-[400px]">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                         <button
                             key={num}
                             onClick={() => handleNumberInput(num)}
-                            className="bg-gray-700 hover:bg-gray-600 text-white h-12 md:h-14 rounded-xl font-bold text-xl transition-colors active:scale-95"
+                            className="bg-gray-700 hover:bg-gray-600 text-white h-14 md:h-16 rounded-xl font-bold text-2xl md:text-3xl transition-colors active:scale-95 shadow-md flex items-center justify-center"
                         >
                             {num}
                         </button>
                     ))}
-                    <button
-                        onClick={handleClearCell}
-                        className="bg-red-900/50 hover:bg-red-800/50 text-red-300 h-12 md:h-14 rounded-xl font-bold text-xl transition-colors active:scale-95"
-                    >
-                        ⌫
-                    </button>
                 </div>
 
             </div>
