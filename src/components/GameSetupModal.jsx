@@ -20,11 +20,11 @@ export default function GameSetupModal({ onClose, onStart }) {
     const handleStart = () => {
         setGameType(type);
         if (type === 'geoworld' && mode && language) {
-            onStart(mode, language);
+            onStart('geoworld', mode, language);
         } else if (type === 'geodoku' && difficulty) {
             setGeodokuDifficulty(difficulty);
             // Geodoku doesn't use daily/language currently, pass dummy or default
-            onStart('unlimited', 'en'); 
+            onStart('geodoku', 'unlimited', 'en', difficulty); 
         }
     };
 
