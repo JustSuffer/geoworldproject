@@ -115,7 +115,8 @@ export function GameProvider({ children }) {
   // Word Pools
   const WORDS_TR = [
     "KARTAL", "BASKET", "KAPTAN", "MARKET", "PARKUR", 
-    "SISTEM", "DOKTOR", "MANTAR", "KANTAR", "SANYIE", "KORFEZ", "DEPREM", "SIMSEK", "YAGMUR"
+    "SISTEM", "DOKTOR", "MANTAR", "KANTAR", "SANYIE", "KORFEZ", "DEPREM", "SIMSEK", "YAGMUR",
+    "TINNET", "KEBELE", "ÇURÇUR", "ÜTÜLÜP", "YARATI", "DARALA", "TAKIYE", "KISACA", "PASTAV", "KORALA", "KUSMAK", "ÜRÜNCÜ", "CANSOY", "MARPUÇ", "AZABIM", "KATYON", "PULSUZ", "PORTAL", "STATIK", "SAĞLAŞ", "KÖPEĞE", "BANDIK", "GÜRECE", "GÜRGEN", "FÖNLET", "KOÇKAR", "AÇILAN", "SANSÜR", "RUSTIK", "EVIRIP", "OKSIDI", "AVUNTU", "EDIMCI", "ZEYCAN", "UTULAN", "İNCESU", "BOZASI", "GÖLOVA", "RAZMOL", "ÖNEMCI", "AĞZINA", "IRGALA", "MERHEM", "MAZICI", "PÜRÇÜK", "KIRKIM", "YANŞAK", "TAŞMAZ", "ARAMAZ", "IRADIN", "KOTSUZ", "PERVIN", "APATIT", "RITÜEL", "SEKSEK", "MASTOR", "YANALI", "PATLAT", "KASARA", "TESHIN", "LEKELI", "BINACI", "YUMRUL", "MUMLAN", "SÜCUDU", "EKIMCI", "KOPASI", "SOFIZM", "CEBELE", "ULAĞIN", "ILAÇLA", "MÜSRIF", "YETEME", "ZEKIYE", "PAŞASI", "TROLCÜ", "MOZOLE", "AKARCA", "ÜTOPYA", "POMPAJ", "ISELER", "SEKILI", "DELMEK", "IRAKLA", "GERDEL", "YERCIK", "SUŞICI", "GÜLFEM", "HAŞLAT", "UCUZCA", "FARSAL", "AYITLI", "KASICI", "DOĞALA", "AKASYA", "MÜMBIT", "NEZRIM", "IRAMAK", "KUYRUK", "TUTSAK", "ELENEN", "ÖKELEN", "NAYMAN", "KIRKIL", "YOLAMA", "GIZLEŞ", "BADELI", "ŞERIDI", "HARCAN", "KAFACA", "APSENT", "PARKÇI", "ANIĞIN", "ÇINGIR", "ILGECI", "DÜŞÜCÜ", "SARPER", "HESABA", "SAHLEP", "AĞALAN", "FILLET", "ÇAKTIK", "NEZRIN", "UKUBET", "TUTTUK", "POTALI", "GÜVEYI", "CUMBUR", "GERÇEK", "EREĞIN", "ŞEBEĞI", "SAHIRE", "CAMLAŞ", "ÖYKÜCE", "ZIKRIN", "ÖDÜLLE", "KOYALI", "BUUTLU", "PAKIZE", "BÜZÜCÜ", "KIBRIN", "KALBIN", "EŞITSI", "UMULMA", "FERSIZ", "TAMULA", "IBIKLI", "NAKIBI", "AĞIRLA", "IKILET", "UZAYIP", "BIYELI", "SARICA", "BOĞASI", "BETILI", "YITIĞI", "PRIMLI", "NÜKHET", "KORLAŞ", "HAMLET", "KARMAK", "HALVET", "UYANIL", "ASLIYE", "BILELI", "ZEHABI", "KONKAV", "EVERME", "ARKACI", "TÜMLEÇ", "TALIBI", "ŞEFFAF", "GRISEL", "TÜRKAN", "YAKLAN", "ANJIYO", "KAPSAL", "ANLAMA", "HIZSIZ", "GAZISI", "ÖVGÜLE", "AYIŞIK", "YILCIK", "SLIPLI", "ÖVMELI", "ÇERMIK", "FIZIĞE", "SIRIĞI", "BESICI", "MEVZII", "IBRALA", "BASLAT", "TAHKIM", "OLURSU", "IMALCI", "LIGSEL", "CELALI", "GOBLEN", "TAKRIP", "BAŞLIK", "ALEMCE", "CELISI", "TENLIK", "MALSIZ", "CILTLI", "ŞEFSEL", "KEMELI", "RAPTET", "GÖMESI", "BESLET", "KASTIR", "ŞAHNAZ", "PIKNIK", "TANDEM", "OYACIK", "TAYMAZ", "ALLAME", "DANALI", "YAYLAN", "BAYAĞI", "EMILIM", "DINÇSI", "KRONIK", "BIZZAT", "ANEMIK", "KASRIN", "MEFRUŞ", "KOLLAN", "SIKILA", "SIZMAZ", "TESHIR", "TÜRABA", "KOVASI", "DAĞLAT", "HÜRLEŞ", "SKECIN", "SARDIR", "RAFSIZ", "KIMONO", "GÜLSÜZ", "MÜBREM", "TEĞMEN", "RAHVAN", "PESOLA", "TEREĞE", "KORKUP", "EĞECEK", "ACINAN", "MODACA", "ADAPTE", "IMIŞIM", "YUMUŞA", "OTOBAN", "ERENCE", "TAZMIN", "SEMELE", "UÇUVER", "KURTÇU", "DALLAN", "TABISI", "AZIZLI", "VURDUK", "MÜNKIR", "MÜDRIR", "AYIBIN", "MATRAH", "ŞELEĞI", "YATALI", "MEALLI", "MEŞALE", "ÇATICI", "FELÇLI", "ÖRMELI", "ZIRKON", "KANALI", "MANICI", "KORPUS", "AVUTMA", "ÖTLEĞI", "ALIŞAN", "KANMAZ", "ERITME", "ÇOLPAN", "ÖCÜYLE", "PONPON", "SEVABA", "UÇMALI", "YASLAN", "KULÜBÜ", "BAĞRIN", "UYARIŞ", "EVRADA", "KARDEŞ", "ILKYAZ", "TUĞBAY", "OLMALI", "KUPALA", "ÖRÜNTÜ", "IZLEME", "EFENDI", "ADAMLI", "KEKELE", "CENUBA", "DÜŞMÜŞ", "ŞAŞAMA", "KADIRE", "KILSIZ", "ACIDIR", "CEVABI", "DÖŞEME", "TALICI", "ÜŞÜNÜL", "UFACIK", "KAUÇUK", "LALLAN", "HAYATI", "ÇIRKIN", "SLOVEN", "UĞURLU", "EŞLIĞE", "KÜTLEN", "ÇILGIN", "KOKMAK", "CÜCESI", "DAYAMA", "IŞIDIK", "IÇILEN", "BÜKÜLÜ", "GEVŞEK", "ILKECI", "ICAZET", "GÖZYAŞ", "KAFALI", "PIRLIK", "ÇILEĞE", "SOYKAN", "HARICI", "ILLICI", "LAIĞIN", "CALIBE", "ÇIZELI", "EKSILE", "MORFIN", "KÜNKLÜ", "AKAÇÇA", "UMUTLA", "IMANLI", "AZLIĞA", "CILTEV", "TEMYIZ", "ASALIK", "TOKLUK", "YOLMAK", "ICRAAT", "DENSIZ", "MEKTEP", "KOKTUK", "ACIYIP", "FETHET", "VUALET", "BADECE", "TAVSIF", "YAYAMA", "MENCIK", "ÇÖLSEL", "TERTIP", "TASALA", "ZEHRIM", "LAIĞIZ", "BÜZEME", "YÜRÜME", "EKLIĞI", "HAVALA", "MAVERA", "EKSICI", "BERGIN", "TIMSIZ", "MELODI", "MÜCVER", "SINECI", "KAPMIŞ", "ELMALI", "MANUEL", "FESADA", "YOLAĞI", "KALORI", "ILMIĞI", "MERALI", "MORLAŞ", "AKÇORA", "KIRIĞI", "OCAĞIN", "DOYDUR", "SETLIÇ", "TEHCIR", "RUSLAN", "IŞITAN", "YOLSAL", "ISTIVA", "MÜMTAZ", "KAKMAZ", "LIBERO", "BOĞUCU", "AZALIŞ", "AVCILI", "HAYRAN", "HILVAN", "ROTALI", "HARAMI", "EFORLU", "BAYAMA", "GOŞIZM", "DIZLIK", "OZANLI", "BUMBUZ", "ELEKSI", "MARLEY", "TEKFIR", "MAILEN", "RAYICI", "MAVICE", "UCUYSA", "DOKSAL", "DEFINE", "ÜRKEĞI", "ILMEĞI", "TERSLE", "SAYILA", "ACIMAZ", "GRANÜL", "KALABA", "TEDVIR", "KAVELA", "YILMAK", "ZARSIZ", "TERLET", "AMASYA", "ROKOKO", "KALKIŞ", "ARAMAK", "YIVSIZ", "NARDIN", "AKIMLA", "ERTELE", "IZOMER", "ABSÜRT", "AVUNCA", "ÜMITSI", "ZORLAT", "MECLUP", "YEDICI", "ÖREBIL", "SALLAŞ", "DISPEÇ", "KUMBAŞ", "JÜRICI", "RÜYALI", "MINELE", "GANICI", "KARTON", "EĞILIM", "AKNELI", "KIRAĞI", "BAŞBUĞ", "ASIRLI", "SIDDIK", "SONSAL", "ALTLIK", "DUBLAJ", "GÖBEĞE", "SEMIHA", "KONDOM", "JÜRILI", "BILGÜN", "INATLI", "MUTLAN", "ABDEST", "ANTIKA", "ADILET", "HODBIN", "AZIMSI", "AHDINE", "NESLIM", "ERIYIP", "CUMACI", "ÇINDAN", "SELMAN", "KOYAMA", "YAPTIR", "TAHRIP", "ÇOLAĞI", "HILALI", "BIBILI", "SINIĞI", "SAYILI", "SOLUMA", "DIMILI", "TÜRSÜZ", "YEMSIZ", "MASKOT"
   ];
   
   const WORDS_EN = [
@@ -186,12 +187,25 @@ export function GameProvider({ children }) {
           const sudoku = getSudoku(activeDifficulty);
           setGeodokuBoard(sudoku.puzzle);
           setGeodokuSolution(sudoku.solution);
-          const initialRevealed = [];
+          
+          const allClues = [];
           for(let i = 0; i < sudoku.puzzle.length; i++) {
               if (sudoku.puzzle[i] !== '-') {
-                  initialRevealed.push(i);
+                  allClues.push(i);
               }
           }
+          
+          // Shuffle allClues to pick a random subset
+          for (let i = allClues.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [allClues[i], allClues[j]] = [allClues[j], allClues[i]];
+          }
+          
+          let numToReveal = 10;
+          if (activeDifficulty === 'easy') numToReveal = 15;
+          if (activeDifficulty === 'hard') numToReveal = 5;
+          
+          const initialRevealed = allClues.slice(0, numToReveal);
           setGeodokuRevealed(initialRevealed);
           setGuesses([]);
           setSpheres([]); 
@@ -474,16 +488,36 @@ export function GameProvider({ children }) {
                     setGeodokuRevealed(prev => {
                         const revealCount = geodokuDifficulty === 'easy' ? 3 : (geodokuDifficulty === 'medium' ? 2 : 1);
                         const totalReveal = newlyFound * revealCount;
-                        const unrevealed = [];
+                        
+                        const unrevealedClues = [];
                         for(let i=0; i<81; i++) {
-                            if (!prev.includes(i)) unrevealed.push(i);
+                            if (geodokuBoard && geodokuBoard[i] !== '-' && !prev.includes(i)) {
+                                unrevealedClues.push(i);
+                            }
                         }
+                        
+                        const unrevealedAny = [];
+                        if (unrevealedClues.length < totalReveal) {
+                            for(let i=0; i<81; i++) {
+                                if (!prev.includes(i) && !unrevealedClues.includes(i)) {
+                                    unrevealedAny.push(i);
+                                }
+                            }
+                        }
+                        
                         const toReveal = [];
-                        for(let i=0; i<totalReveal && unrevealed.length > 0; i++) {
-                            const randIdx = Math.floor(Math.random() * unrevealed.length);
-                            toReveal.push(unrevealed[randIdx]);
-                            unrevealed.splice(randIdx, 1);
+                        while(toReveal.length < totalReveal && unrevealedClues.length > 0) {
+                            const randIdx = Math.floor(Math.random() * unrevealedClues.length);
+                            toReveal.push(unrevealedClues[randIdx]);
+                            unrevealedClues.splice(randIdx, 1);
                         }
+                        
+                        while(toReveal.length < totalReveal && unrevealedAny.length > 0) {
+                            const randIdx = Math.floor(Math.random() * unrevealedAny.length);
+                            toReveal.push(unrevealedAny[randIdx]);
+                            unrevealedAny.splice(randIdx, 1);
+                        }
+                        
                         return [...prev, ...toReveal];
                     });
                 }, 0);
@@ -493,7 +527,7 @@ export function GameProvider({ children }) {
         return prevSpheres;
       });
     }
-  }, [userLocation, gameType, geodokuDifficulty]);
+  }, [userLocation, gameType, geodokuDifficulty, geodokuBoard]);
 
   // Update found letters
   useEffect(() => {
