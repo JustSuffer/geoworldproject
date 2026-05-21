@@ -59,13 +59,15 @@ export default function GameSetupModal({ onClose, onStart, onContinue }) {
 
                 {step === 0 && (
                     <div className="flex flex-col gap-4">
-                        <button 
-                            onClick={onContinue}
-                            className="w-full py-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-xl transition-all shadow-lg flex items-center justify-center gap-2"
-                        >
-                            <Play className="w-6 h-6 fill-current" />
-                            CONTINUE
-                        </button>
+                        {isStarted && (
+                            <button 
+                                onClick={onContinue}
+                                className="w-full py-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                            >
+                                <Play className="w-6 h-6 fill-current" />
+                                CONTINUE
+                            </button>
+                        )}
                         <button 
                             onClick={handleNewGameClick}
                             className="w-full py-4 bg-gray-800 hover:bg-gray-700 rounded-xl font-bold text-xl transition-all"
