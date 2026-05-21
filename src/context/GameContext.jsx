@@ -37,6 +37,10 @@ export function GameProvider({ children }) {
       const saved = localStorage.getItem('gameState');
       return saved ? (JSON.parse(saved).geodokuRevealed || []) : [];
   });
+  const [geodokuLives, setGeodokuLives] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved && JSON.parse(saved).geodokuLives !== undefined ? JSON.parse(saved).geodokuLives : 3;
+  });
 
   // Global Stats & History
   const [stats, setStats] = useState(() => {
@@ -162,6 +166,35 @@ export function GameProvider({ children }) {
       }
   }, [gameMode, gameLanguage]);
 
+  // Separate Game states
+  const [isGeoworldStarted, setIsGeoworldStarted] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved && saved.includes('isGeoworldStarted') ? JSON.parse(saved).isGeoworldStarted : false;
+  });
+  const [isGeodokuStarted, setIsGeodokuStarted] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved && saved.includes('isGeodokuStarted') ? JSON.parse(saved).isGeodokuStarted : false;
+  });
+
+  const [geoworldStatus, setGeoworldStatus] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved && saved.includes('geoworldStatus') ? JSON.parse(saved).geoworldStatus : 'playing';
+  });
+  const [geodokuStatus, setGeodokuStatus] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved && saved.includes('geodokuStatus') ? JSON.parse(saved).geodokuStatus : 'playing';
+  });
+
+  const [geoworldSpheres, setGeoworldSpheres] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved && saved.includes('geoworldSpheres') ? JSON.parse(saved).geoworldSpheres : [];
+  });
+  const [geodokuSpheres, setGeodokuSpheres] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved && saved.includes('geodokuSpheres') ? JSON.parse(saved).geodokuSpheres : [];
+  });
+
+
   const newGame = (overrideType = null, overrideMode = null, overrideLanguage = null, overrideDifficulty = null) => {
       const activeType = overrideType || gameType;
       const activeMode = overrideMode || gameMode;
@@ -172,18 +205,19 @@ export function GameProvider({ children }) {
           if (activeMode === 'unlimited') {
               setDailyWord(getRandomWord(activeLanguage));
           }
-          // For both unlimited and daily, we want to reset state but keep spheres if they exist
-          if (spheres.length > 0) {
-             setSpheres(prev => prev.map(s => ({ ...s, found: false })));
+          if (geoworldSpheres.length > 0) {
+             setGeoworldSpheres(prev => prev.map(s => ({ ...s, found: false })));
           } else {
-             setSpheres([]); 
+             setGeoworldSpheres([]); 
           }
           setFoundLetters([]);
           setGuesses([]);
           setCurrentGuess('');
-          setGameStatus('playing');
-          setIsGameStarted(true);
+          setGeoworldStatus('playing');
+          setIsGeoworldStarted(true);
       } else if (activeType === 'geodoku') {
+          localStorage.removeItem('geodokuAnswers');
+          localStorage.removeItem('geodokuNotes');
           const sudoku = getSudoku(activeDifficulty);
           setGeodokuBoard(sudoku.puzzle);
           setGeodokuSolution(sudoku.solution);
@@ -195,7 +229,6 @@ export function GameProvider({ children }) {
               }
           }
           
-          // Shuffle allClues to pick a random subset
           for (let i = allClues.length - 1; i > 0; i--) {
               const j = Math.floor(Math.random() * (i + 1));
               [allClues[i], allClues[j]] = [allClues[j], allClues[i]];
@@ -207,21 +240,26 @@ export function GameProvider({ children }) {
           
           const initialRevealed = allClues.slice(0, numToReveal);
           setGeodokuRevealed(initialRevealed);
-          setGuesses([]);
-          setSpheres([]); 
-          setGameStatus('playing');
-          setIsGameStarted(true);
+          
+          setGeodokuSpheres([]); 
+          setGeodokuStatus('playing');
+          setIsGeodokuStarted(true);
+          setGeodokuLives(3);
       }
   };
 
   const resetGame = () => {
-      setGuesses([]);
-      setCurrentGuess('');
-      setGameStatus('playing');
-      setFoundLetters([]);
-      setSpheres([]);
-      // We don't necessarily change dailyWord here, as it depends on mode/lang
-      // But clearing spheres will trigger regeneration
+      if (gameType === 'geoworld') {
+          setGuesses([]);
+          setCurrentGuess('');
+          setGeoworldStatus('playing');
+          setFoundLetters([]);
+          setGeoworldSpheres([]);
+      } else {
+          setGeodokuStatus('playing');
+          setGeodokuSpheres([]);
+          setGeodokuLives(3);
+      }
   };
 
   // Update daily word at midnight if in daily mode
@@ -232,24 +270,19 @@ export function GameProvider({ children }) {
           const newWord = getDailyWord(gameLanguage);
           if (newWord !== dailyWord) {
               setDailyWord(newWord);
-              setSpheres([]); // Reset spheres
+              setGeoworldSpheres([]); // Reset spheres
               setFoundLetters([]);
               setGuesses([]);
               setCurrentGuess('');
-              setGameStatus('playing');
-              setIsGameStarted(false); // Clear game started to remove continue button
+              setGeoworldStatus('playing');
+              setIsGeoworldStarted(false); // Clear game started to remove continue button
           }
       };
       
-      // Check every 1 second to make the UI refresh precisely at midnight
       const interval = setInterval(checkMidnight, 1000);
       return () => clearInterval(interval);
   }, [dailyWord, gameMode, gameLanguage]);
 
-  const [spheres, setSpheres] = useState(() => {
-      const saved = localStorage.getItem('gameState');
-      return saved ? (JSON.parse(saved).spheres || []) : [];
-  });
   const [foundLetters, setFoundLetters] = useState(() => {
       const saved = localStorage.getItem('gameState');
       return saved ? (JSON.parse(saved).foundLetters || []) : [];
@@ -282,14 +315,6 @@ export function GameProvider({ children }) {
       const saved = localStorage.getItem('gameState');
       return saved ? JSON.parse(saved).currentGuess : '';
   });
-  const [gameStatus, setGameStatus] = useState(() => {
-      const saved = localStorage.getItem('gameState');
-      return saved ? JSON.parse(saved).gameStatus : 'playing';
-  });
-  const [isGameStarted, setIsGameStarted] = useState(() => {
-      const saved = localStorage.getItem('gameState');
-      return saved ? JSON.parse(saved).isGameStarted : false;
-  });
 
   // Validate saved state against current word and reset if needed
   useEffect(() => {
@@ -301,14 +326,14 @@ export function GameProvider({ children }) {
           const currentDayIndex = getDailyIndex();
           const isDailyAndDayChanged = gameMode === 'daily' && parsed.savedDayIndex !== undefined && parsed.savedDayIndex !== currentDayIndex;
           
-          const isInvalidState = parsed.gameStatus !== 'playing' && (!parsed.guesses || parsed.guesses.length === 0);
+          const isInvalidState = parsed.geoworldStatus !== 'playing' && (!parsed.guesses || parsed.guesses.length === 0);
 
           if ((parsed.savedWord && parsed.savedWord !== dailyWord) || isDailyAndDayChanged || isInvalidState) {
               setGuesses([]);
               setCurrentGuess('');
-              setGameStatus('playing');
-              setIsGameStarted(false);
-              setSpheres([]);
+              setGeoworldStatus('playing');
+              setIsGeoworldStarted(false);
+              setGeoworldSpheres([]);
               setStartTime(Date.now());
               setEndTime(null);
               setDistanceWalked(0);
@@ -322,13 +347,16 @@ export function GameProvider({ children }) {
       localStorage.setItem('gameState', JSON.stringify({
           guesses,
           currentGuess,
-          gameStatus,
-          isGameStarted,
+          geoworldStatus,
+          geodokuStatus,
+          isGeoworldStarted,
+          isGeodokuStarted,
           savedWord: dailyWord,
           savedDayIndex: getDailyIndex(),
           startTime,
           endTime,
-          spheres,
+          geoworldSpheres,
+          geodokuSpheres,
           foundLetters,
           distanceWalked,
           gameMode,
@@ -337,9 +365,10 @@ export function GameProvider({ children }) {
           geodokuDifficulty,
           geodokuBoard,
           geodokuSolution,
-          geodokuRevealed
+          geodokuRevealed,
+          geodokuLives
       }));
-  }, [guesses, currentGuess, gameStatus, isGameStarted, dailyWord, spheres, foundLetters, distanceWalked, gameMode, gameLanguage, endTime, gameType, geodokuDifficulty, geodokuBoard, geodokuSolution, geodokuRevealed]);
+  }, [guesses, currentGuess, geoworldStatus, geodokuStatus, isGeoworldStarted, isGeodokuStarted, dailyWord, geoworldSpheres, geodokuSpheres, foundLetters, distanceWalked, gameMode, gameLanguage, endTime, gameType, geodokuDifficulty, geodokuBoard, geodokuSolution, geodokuRevealed, geodokuLives]);
 
   // Watch location
   useEffect(() => {
@@ -358,7 +387,6 @@ export function GameProvider({ children }) {
     };
 
     const handleError = (error) => {
-        console.error("Geolocation error:", error);
         if (error.code === 1) {
              setLocationError("Please allow browser location access.");
              setLoading(false);
@@ -376,20 +404,16 @@ export function GameProvider({ children }) {
         timeout: 5000 
     };
 
-    // 1. Initial position
     navigator.geolocation.getCurrentPosition(
         (position) => {
-            // Only use this if userLocation isn't set yet (closure trap avoided since it's initial)
             handleSuccess(position);
         },
         (error) => console.error("Initial position error:", error),
         { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 }
     );
 
-    // 2. Watch position for native updates
     const watchId = navigator.geolocation.watchPosition(handleSuccess, handleError, options);
 
-    // 3. Fallback interval for iOS/Safari stalling issues
     const intervalId = setInterval(() => {
         navigator.geolocation.getCurrentPosition(handleSuccess, handleError, options);
     }, 3000);
@@ -400,11 +424,9 @@ export function GameProvider({ children }) {
     };
   }, []);
 
-
-
-  // Separate effect for distance calculation to handle state updates correctly
   useEffect(() => {
-      if (gameStatus !== 'playing') return;
+      const activeStatus = gameType === 'geoworld' ? geoworldStatus : geodokuStatus;
+      if (activeStatus !== 'playing') return;
 
       if (userLocation) {
           if (lastLocation) {
@@ -412,7 +434,6 @@ export function GameProvider({ children }) {
             const to = turf.point([userLocation[1], userLocation[0]]);
             const dist = turf.distance(from, to, { units: 'kilometers' });
             
-            // Filter out small movements (GPS jitter) - e.g. < 5 meters
             if (dist > 0.005) {
                 setDistanceWalked(prev => prev + dist);
                 setLastLocation(userLocation);
@@ -421,50 +442,52 @@ export function GameProvider({ children }) {
               setLastLocation(userLocation);
           }
       }
-  }, [userLocation, gameStatus]);
+  }, [userLocation, gameType, geoworldStatus, geodokuStatus]);
 
   // Generate spheres or update letters
   useEffect(() => {
     if (userLocation) {
         if (gameType === 'geoworld' && dailyWord) {
-            if (spheres.length === 0) {
-                // Initial generation
+            if (geoworldSpheres.length === 0) {
                 const newSpheres = generateSpheres(userLocation, 6, 0.5);
                 const wordLetters = dailyWord.split('');
                 newSpheres.forEach((sphere, index) => {
                     sphere.letter = wordLetters[index] || '?';
                 });
-                setSpheres(newSpheres);
+                setGeoworldSpheres(newSpheres);
             } else {
                 const wordLetters = dailyWord.split('');
-                const currentLetters = spheres.map(s => s.letter).join('');
-                if (currentLetters !== dailyWord && !spheres.every(s => s.letter === '?')) {
-                     setSpheres(prev => prev.map((sphere, index) => ({
+                const currentLetters = geoworldSpheres.map(s => s.letter).join('');
+                if (currentLetters !== dailyWord && !geoworldSpheres.every(s => s.letter === '?')) {
+                     setGeoworldSpheres(prev => prev.map((sphere, index) => ({
                         ...sphere,
                         letter: wordLetters[index] || '?',
                         found: false 
                     })));
                 }
             }
-        } else if (gameType === 'geodoku' && gameStatus === 'playing') {
-            const allFound = spheres.length > 0 && spheres.every(s => s.found);
-            if (spheres.length === 0 || allFound) {
+        } else if (gameType === 'geodoku' && geodokuStatus === 'playing') {
+            const allFound = geodokuSpheres.length > 0 && geodokuSpheres.every(s => s.found);
+            if (geodokuSpheres.length === 0 || allFound) {
                 const newSpheres = generateSpheres(userLocation, 6, 0.5);
                 newSpheres.forEach((sphere) => {
                     sphere.letter = '?';
                 });
-                setSpheres(newSpheres);
+                setGeodokuSpheres(newSpheres);
             }
         }
     }
-  }, [userLocation, dailyWord, gameType, gameStatus, spheres]);
+  }, [userLocation, dailyWord, gameType, geodokuStatus, geoworldSpheres, geodokuSpheres]);
 
   // Check distance
   useEffect(() => {
-    if (userLocation && spheres.length > 0) {
+    const currentSpheres = gameType === 'geoworld' ? geoworldSpheres : geodokuSpheres;
+    const setSpheresFn = gameType === 'geoworld' ? setGeoworldSpheres : setGeodokuSpheres;
+
+    if (userLocation && currentSpheres.length > 0) {
       const userPoint = turf.point([userLocation[1], userLocation[0]]);
       
-      setSpheres(prevSpheres => {
+      setSpheresFn(prevSpheres => {
         let updated = false;
         let newlyFound = 0;
         const newSpheres = prevSpheres.map(sphere => {
@@ -531,17 +554,17 @@ export function GameProvider({ children }) {
 
   // Update found letters
   useEffect(() => {
-      const found = spheres.filter(s => s.found).map(s => s.letter);
+      const found = geoworldSpheres.filter(s => s.found).map(s => s.letter);
       setFoundLetters(prev => {
           if (prev.length !== found.length) return found;
           return prev;
       });
-  }, [spheres]);
+  }, [geoworldSpheres]);
 
   return (
     <GameContext.Provider value={{ 
         userLocation, 
-        spheres, 
+        spheres: gameType === 'geoworld' ? geoworldSpheres : geodokuSpheres, 
         dailyWord, 
         foundLetters, 
         score, 
@@ -561,6 +584,8 @@ export function GameProvider({ children }) {
         setGeodokuSolution,
         geodokuRevealed,
         setGeodokuRevealed,
+        geodokuLives,
+        setGeodokuLives,
         newGame,
         startTime,
         endTime,
@@ -570,10 +595,14 @@ export function GameProvider({ children }) {
         setGuesses,
         currentGuess,
         setCurrentGuess,
-        gameStatus,
-        setGameStatus,
-        isGameStarted,
-        setIsGameStarted,
+        gameStatus: gameType === 'geoworld' ? geoworldStatus : geodokuStatus,
+        setGameStatus: gameType === 'geoworld' ? setGeoworldStatus : setGeodokuStatus,
+        geoworldStatus,
+        geodokuStatus,
+        isGameStarted: gameType === 'geoworld' ? isGeoworldStarted : isGeodokuStarted,
+        setIsGameStarted: gameType === 'geoworld' ? setIsGeoworldStarted : setIsGeodokuStarted,
+        isGeoworldStarted,
+        isGeodokuStarted,
         resetGame,
         stats,
         setStats,

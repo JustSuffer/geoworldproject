@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from '../context/GameContext';
-import { RefreshCw, Activity, Eye, EyeOff, Edit3, Undo, Eraser, Lightbulb } from 'lucide-react';
+import { RefreshCw, Activity, Eye, EyeOff, Edit3, Undo, Eraser, Lightbulb, Heart } from 'lucide-react';
 
 export default function GeodokuGame() {
     const { 
         geodokuDifficulty, geodokuBoard, geodokuSolution, geodokuRevealed, 
-        gameStatus, setGameStatus, distanceWalked, newGame, startTime, endTime, setEndTime
+        geodokuStatus, setGeodokuStatus, distanceWalked, newGame, startTime, endTime, setEndTime,
+        geodokuLives, setGeodokuLives
     } = useGame();
 
     const [userAnswers, setUserAnswers] = useState(() => {
@@ -46,7 +47,7 @@ export default function GeodokuGame() {
             setElapsedTime(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
         };
 
-        if (gameStatus !== 'playing') {
+        if (geodokuStatus !== 'playing') {
             updateElapsed();
             return;
         }
@@ -54,11 +55,11 @@ export default function GeodokuGame() {
         const interval = setInterval(updateElapsed, 1000);
         updateElapsed();
         return () => clearInterval(interval);
-    }, [startTime, endTime, gameStatus]);
+    }, [startTime, endTime, geodokuStatus]);
 
     // Check Win Condition
     useEffect(() => {
-        if (!geodokuBoard || !geodokuSolution || gameStatus !== 'playing') return;
+        if (!geodokuBoard || !geodokuSolution || geodokuStatus !== 'playing') return;
 
         let isWon = true;
         for (let i = 0; i < 81; i++) {
@@ -70,14 +71,14 @@ export default function GeodokuGame() {
         }
         
         if (isWon) {
-            setGameStatus('won');
+            setGeodokuStatus('won');
             setEndTime(Date.now());
         }
-    }, [userAnswers, geodokuRevealed, geodokuBoard, geodokuSolution, gameStatus, setGameStatus, setEndTime]);
+    }, [userAnswers, geodokuRevealed, geodokuBoard, geodokuSolution, geodokuStatus, setGeodokuStatus, setEndTime]);
 
     // Clear answers/notes on new game
     useEffect(() => {
-        if (gameStatus === 'playing' && geodokuRevealed.length < 30 && Object.keys(userAnswers).length === 0 && Object.keys(notes).length === 0) {
+        if (geodokuStatus === 'playing' && geodokuRevealed.length < 30 && Object.keys(userAnswers).length === 0 && Object.keys(notes).length === 0) {
             setHistory([]);
         }
     }, [geodokuBoard]);
@@ -94,7 +95,7 @@ export default function GeodokuGame() {
     };
 
     const handleCellClick = (index) => {
-        if (gameStatus !== 'playing') return;
+        if (geodokuStatus !== 'playing') return;
         setSelectedCell(index);
     };
 
@@ -123,7 +124,7 @@ export default function GeodokuGame() {
     };
 
     const handleNumberInput = useCallback((num) => {
-        if (selectedCell === null || gameStatus !== 'playing') return;
+        if (selectedCell === null || geodokuStatus !== 'playing') return;
         if (geodokuRevealed.includes(selectedCell)) return; // Cannot edit revealed cells
         
         const numStr = num.toString();
@@ -166,6 +167,15 @@ export default function GeodokuGame() {
             
             setUserAnswers(nextAnswers);
             
+            if (numStr !== geodokuSolution[selectedCell]) {
+                const newLives = geodokuLives - 1;
+                setGeodokuLives(newLives);
+                if (newLives <= 0) {
+                    setGeodokuStatus('lost');
+                    setEndTime(Date.now());
+                }
+            }
+            
             // Auto remove notes
             const nextNotesState = autoRemoveNotes(selectedCell, numStr);
             
@@ -178,10 +188,10 @@ export default function GeodokuGame() {
                 newNotes: nextNotesState
             });
         }
-    }, [selectedCell, gameStatus, notesMode, geodokuRevealed, userAnswers, notes]);
+    }, [selectedCell, geodokuStatus, notesMode, geodokuRevealed, userAnswers, notes, geodokuSolution, geodokuLives]);
 
     const handleClearCell = useCallback(() => {
-        if (selectedCell === null || gameStatus !== 'playing') return;
+        if (selectedCell === null || geodokuStatus !== 'playing') return;
         if (geodokuRevealed.includes(selectedCell)) return; // Cannot edit revealed cells
         
         const prevValue = userAnswers[selectedCell];
@@ -205,10 +215,10 @@ export default function GeodokuGame() {
 
         setUserAnswers(nextAnswers);
         setNotes(nextNotes);
-    }, [selectedCell, gameStatus, geodokuRevealed, userAnswers, notes]);
+    }, [selectedCell, geodokuStatus, geodokuRevealed, userAnswers, notes]);
 
     const handleUndo = useCallback(() => {
-        if (gameStatus !== 'playing' || history.length === 0) return;
+        if (geodokuStatus !== 'playing' || history.length === 0) return;
         
         const lastAction = history[history.length - 1];
         setHistory(prev => prev.slice(0, -1));
@@ -232,10 +242,10 @@ export default function GeodokuGame() {
             }
             setNotes(lastAction.prevNotesState);
         }
-    }, [history, gameStatus, userAnswers]);
+    }, [history, geodokuStatus, userAnswers]);
 
     const handleHint = useCallback(() => {
-        if (selectedCell === null || gameStatus !== 'playing') return;
+        if (selectedCell === null || geodokuStatus !== 'playing') return;
         if (geodokuRevealed.includes(selectedCell)) return;
         if (userAnswers[selectedCell] === geodokuSolution[selectedCell]) return;
 
@@ -257,13 +267,13 @@ export default function GeodokuGame() {
             newNotes: nextNotesState
         });
 
-    }, [selectedCell, gameStatus, geodokuRevealed, userAnswers, geodokuSolution, notes]);
+    }, [selectedCell, geodokuStatus, geodokuRevealed, userAnswers, geodokuSolution, notes]);
 
 
     // Keyboard support
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (gameStatus !== 'playing') return;
+            if (geodokuStatus !== 'playing') return;
             
             if (e.key >= '1' && e.key <= '9') {
                 handleNumberInput(e.key);
@@ -285,7 +295,7 @@ export default function GeodokuGame() {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleNumberInput, handleClearCell, handleUndo, gameStatus]);
+    }, [handleNumberInput, handleClearCell, handleUndo, geodokuStatus]);
 
     if (!geodokuBoard) return null;
 
@@ -344,21 +354,42 @@ export default function GeodokuGame() {
                 
                 <div className="w-full max-w-[340px] md:max-w-[400px] mb-4 flex justify-between items-center text-white font-bold bg-black/40 p-3 rounded-xl border border-white/5">
                     <button 
-                        onClick={() => { setUserAnswers({}); setNotes({}); setHistory([]); newGame(); }}
+                        onClick={() => { 
+                            localStorage.removeItem('geodokuAnswers'); 
+                            localStorage.removeItem('geodokuNotes');
+                            setUserAnswers({}); 
+                            setNotes({}); 
+                            setHistory([]); 
+                            newGame('geodoku'); 
+                        }}
                         className="flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white transition-colors shadow-lg shadow-green-900/20"
                     >
                         <RefreshCw className="w-4 h-4" />
                         NEW GAME
                     </button>
+                    <div className="flex gap-1">
+                        {[1, 2, 3].map((life) => (
+                            <Heart 
+                                key={life} 
+                                className={`w-5 h-5 ${life <= geodokuLives ? 'text-red-500 fill-red-500' : 'text-gray-600'}`} 
+                            />
+                        ))}
+                    </div>
                     <div className="text-xs uppercase tracking-wider text-gray-400 font-semibold flex flex-col items-end">
                         <span>GEODOKU</span>
                         <span className="text-primary">{geodokuDifficulty}</span>
                     </div>
                 </div>
 
-                {gameStatus === 'won' && (
+                {geodokuStatus === 'won' && (
                     <div className="mb-4 bg-green-500/20 border border-green-500 text-green-400 p-3 rounded-xl font-bold w-full max-w-[340px] md:max-w-[400px] text-center animate-pulse">
                         🎉 YOU SOLVED IT! 🎉
+                    </div>
+                )}
+                
+                {geodokuStatus === 'lost' && (
+                    <div className="mb-4 bg-red-500/20 border border-red-500 text-red-400 p-3 rounded-xl font-bold w-full max-w-[340px] md:max-w-[400px] text-center animate-pulse">
+                        💔 GAME OVER! 💔
                     </div>
                 )}
 

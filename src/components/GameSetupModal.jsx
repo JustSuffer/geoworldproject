@@ -5,10 +5,11 @@ import { useGame } from '../context/GameContext';
 
 export default function GameSetupModal({ onClose, onStart }) {
     const { t } = useTranslation();
-    const { setGameType, setGeodokuDifficulty } = useGame();
+    const { setGameType, setGeodokuDifficulty, isGeoworldStarted, isGeodokuStarted } = useGame();
     
     const [step, setStep] = useState(1);
     const [type, setType] = useState('geoworld'); // 'geoworld' or 'geodoku'
+    const [showWarning, setShowWarning] = useState(false);
     
     // Geoworld Options
     const [mode, setMode] = useState(null); // 'daily' or 'unlimited'
@@ -17,7 +18,7 @@ export default function GameSetupModal({ onClose, onStart }) {
     // Geodoku Options
     const [difficulty, setDifficulty] = useState(null); // 'easy', 'medium', 'hard'
 
-    const handleStart = () => {
+    const executeStart = () => {
         setGameType(type);
         if (type === 'geoworld' && mode && language) {
             onStart('geoworld', mode, language);
@@ -25,6 +26,16 @@ export default function GameSetupModal({ onClose, onStart }) {
             setGeodokuDifficulty(difficulty);
             // Geodoku doesn't use daily/language currently, pass dummy or default
             onStart('geodoku', 'unlimited', 'en', difficulty); 
+        }
+    };
+
+    const handleStart = () => {
+        if (type === 'geoworld' && isGeoworldStarted) {
+            setShowWarning(true);
+        } else if (type === 'geodoku' && isGeodokuStarted) {
+            setShowWarning(true);
+        } else {
+            executeStart();
         }
     };
 
@@ -161,6 +172,35 @@ export default function GameSetupModal({ onClose, onStart }) {
                             START GEODOKU
                         </button>
                     </>
+                )}
+
+                {showWarning && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/90 backdrop-blur-sm p-6 rounded-2xl">
+                        <div className="text-center">
+                            <h3 className="text-xl font-bold text-red-500 mb-4">Dikkat!</h3>
+                            <p className="text-gray-300 mb-6">
+                                Devam eden bir oyun süreciniz var. Yeni oyuna girmekten emin misiniz? <br/>
+                                <span className="text-red-400 text-sm">(Eski kayıt silinir)</span>
+                            </p>
+                            <div className="flex gap-4 w-full">
+                                <button 
+                                    onClick={() => setShowWarning(false)}
+                                    className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-bold transition-colors"
+                                >
+                                    İptal
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        setShowWarning(false);
+                                        executeStart();
+                                    }}
+                                    className="flex-1 py-3 bg-red-600 hover:bg-red-700 rounded-xl font-bold transition-colors shadow-lg shadow-red-900/50"
+                                >
+                                    Yeni Oyun
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
