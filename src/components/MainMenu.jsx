@@ -22,13 +22,9 @@ export default function MainMenu({ onAuth }) {
         navigate('/play');
     };
 
-    const handlePlayClick = () => {
-        setSetupOpen(true);
-    };
-
-    const handleContinue = (type) => {
+    const handlePlayClick = (type) => {
         setGameType(type);
-        navigate('/play');
+        setSetupOpen(true);
     };
 
     return (
@@ -46,32 +42,20 @@ export default function MainMenu({ onAuth }) {
 
             {/* Menu Buttons */}
             <div className="relative z-10 flex flex-col gap-4 w-full max-w-xs">
-                {isGeoworldStarted && (
-                    <button 
-                        onClick={() => handleContinue('geoworld')}
-                        className="group relative bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] flex items-center justify-center gap-3"
-                    >
-                        <Play className="w-6 h-6 fill-current" />
-                        CONTINUE GEOWORLD
-                    </button>
-                )}
-                
-                {isGeodokuStarted && (
-                    <button 
-                        onClick={() => handleContinue('geodoku')}
-                        className="group relative bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-xl font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-[0_0_20px_rgba(147,51,234,0.4)] hover:shadow-[0_0_30px_rgba(147,51,234,0.6)] flex items-center justify-center gap-3"
-                    >
-                        <Play className="w-6 h-6 fill-current" />
-                        CONTINUE GEODOKU
-                    </button>
-                )}
-
                 <button 
-                    onClick={handlePlayClick}
-                    className="group relative bg-primary hover:bg-red-700 text-white p-4 rounded-xl font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-[0_0_20px_rgba(178,11,11,0.4)] hover:shadow-[0_0_30px_rgba(178,11,11,0.6)] flex items-center justify-center gap-3"
+                    onClick={() => handlePlayClick('geoworld')}
+                    className="group relative bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] flex items-center justify-center gap-3"
                 >
                     <Play className="w-6 h-6 fill-current" />
-                    NEW GAME
+                    PLAY GEOWORLD
+                </button>
+                
+                <button 
+                    onClick={() => handlePlayClick('geodoku')}
+                    className="group relative bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-xl font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-[0_0_20px_rgba(147,51,234,0.4)] hover:shadow-[0_0_30px_rgba(147,51,234,0.6)] flex items-center justify-center gap-3"
+                >
+                    <Play className="w-6 h-6 fill-current" />
+                    PLAY GEODOKU
                 </button>
 
                 <div className="grid grid-cols-2 gap-4">

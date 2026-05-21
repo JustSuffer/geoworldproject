@@ -36,15 +36,29 @@ export default function GeodokuGame() {
         localStorage.setItem('geodokuNotes', JSON.stringify(notes));
     }, [notes]);
 
-    // Live Timer
+    // Live Timer & Countdown
     useEffect(() => {
         const updateElapsed = () => {
             const finalTime = endTime || Date.now();
             const diff = Math.max(0, finalTime - startTime);
-            const h = Math.floor(diff / (1000 * 60 * 60));
-            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((diff % (1000 * 60)) / 1000);
-            setElapsedTime(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+            
+            if (geodokuDifficulty === 'hard') {
+                const timeLeft = Math.max(0, 7200000 - diff); // 2 hours
+                const h = Math.floor(timeLeft / (1000 * 60 * 60));
+                const m = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                setElapsedTime(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+                
+                if (timeLeft <= 0 && geodokuStatus === 'playing') {
+                    setGeodokuStatus('lost');
+                    setEndTime(Date.now());
+                }
+            } else {
+                const h = Math.floor(diff / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                setElapsedTime(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+            }
         };
 
         if (geodokuStatus !== 'playing') {
@@ -55,7 +69,7 @@ export default function GeodokuGame() {
         const interval = setInterval(updateElapsed, 1000);
         updateElapsed();
         return () => clearInterval(interval);
-    }, [startTime, endTime, geodokuStatus]);
+    }, [startTime, endTime, geodokuStatus, geodokuDifficulty, setGeodokuStatus, setEndTime]);
 
     // Check Win Condition
     useEffect(() => {
@@ -323,8 +337,8 @@ export default function GeodokuGame() {
                         <div className="absolute top-14 right-0 w-48 bg-gray-900/95 border border-white/10 rounded-xl p-4 shadow-2xl backdrop-blur-md text-white">
                             <div className="flex flex-col gap-3">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-gray-400 text-xs uppercase">Time</span>
-                                    <span className="font-mono font-bold text-lg text-primary">{elapsedTime}</span>
+                                    <span className="text-gray-400 text-xs uppercase">{geodokuDifficulty === 'hard' ? 'Time Left' : 'Time'}</span>
+                                    <span className={`font-mono font-bold text-lg ${geodokuDifficulty === 'hard' && elapsedTime.startsWith('00:0') ? 'text-red-500 animate-pulse' : 'text-primary'}`}>{elapsedTime}</span>
                                 </div>
                                 <div className="h-px bg-white/10"></div>
                                 <div className="flex justify-between items-center">
@@ -381,20 +395,8 @@ export default function GeodokuGame() {
                     </div>
                 </div>
 
-                {geodokuStatus === 'won' && (
-                    <div className="mb-4 bg-green-500/20 border border-green-500 text-green-400 p-3 rounded-xl font-bold w-full max-w-[340px] md:max-w-[400px] text-center animate-pulse">
-                        🎉 YOU SOLVED IT! 🎉
-                    </div>
-                )}
-                
-                {geodokuStatus === 'lost' && (
-                    <div className="mb-4 bg-red-500/20 border border-red-500 text-red-400 p-3 rounded-xl font-bold w-full max-w-[340px] md:max-w-[400px] text-center animate-pulse">
-                        💔 GAME OVER! 💔
-                    </div>
-                )}
-
                 {/* Main Grid */}
-                <div className="grid grid-cols-9 gap-[1px] md:gap-[2px] bg-gray-600 p-1 rounded-xl mb-4 md:mb-6 select-none w-[340px] md:w-[400px] h-[340px] md:h-[400px] shadow-2xl">
+                <div className="grid grid-cols-9 grid-rows-9 gap-[1px] md:gap-[2px] bg-gray-600 p-1 rounded-xl mb-4 md:mb-6 select-none w-[340px] md:w-[400px] h-[340px] md:h-[400px] shadow-2xl">
                     {Array.from({ length: 81 }).map((_, i) => {
                         const { row, col, block } = getRowColBlock(i);
                         const isRevealed = geodokuRevealed.includes(i);
@@ -507,6 +509,35 @@ export default function GeodokuGame() {
                 </div>
 
             </div>
+            
+            {/* Game Over / Win Overlay */}
+            {(geodokuStatus === 'lost' || geodokuStatus === 'won') && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 pointer-events-auto">
+                    <div className={`border p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center transform transition-all scale-100 ${geodokuStatus === 'won' ? 'bg-green-900/30 border-green-500/50' : 'bg-red-900/30 border-red-500/50'}`}>
+                        <div className="text-6xl mb-4">{geodokuStatus === 'won' ? '🎉' : '💔'}</div>
+                        <h2 className={`text-4xl font-black mb-2 ${geodokuStatus === 'won' ? 'text-green-400' : 'text-red-500'}`}>
+                            {geodokuStatus === 'won' ? 'YOU WON!' : 'GAME OVER!'}
+                        </h2>
+                        <p className="text-gray-300 mb-8 text-lg">
+                            {geodokuStatus === 'won' ? 'Mükemmel iş çıkardın, tüm Sudoku\'yu başarıyla çözdün!' : 'Maalesef canların bitti veya süren doldu.'}
+                        </p>
+                        
+                        <button 
+                            onClick={() => { 
+                                localStorage.removeItem('geodokuAnswers'); 
+                                localStorage.removeItem('geodokuNotes');
+                                setUserAnswers({}); 
+                                setNotes({}); 
+                                setHistory([]); 
+                                newGame('geodoku'); 
+                            }}
+                            className={`w-full py-4 rounded-xl font-bold text-xl text-white transition-all shadow-lg ${geodokuStatus === 'won' ? 'bg-green-600 hover:bg-green-500 shadow-green-900/50' : 'bg-red-600 hover:bg-red-500 shadow-red-900/50'}`}
+                        >
+                            YENİ OYUN
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

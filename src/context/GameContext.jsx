@@ -21,6 +21,10 @@ export function GameProvider({ children }) {
       const saved = localStorage.getItem('gameState');
       return saved ? (JSON.parse(saved).gameType || 'geoworld') : 'geoworld';
   });
+  const [geodokuMode, setGeodokuMode] = useState(() => {
+      const saved = localStorage.getItem('gameState');
+      return saved ? (JSON.parse(saved).geodokuMode || 'unlimited') : 'unlimited';
+  });
   const [geodokuDifficulty, setGeodokuDifficulty] = useState(() => {
       const saved = localStorage.getItem('gameState');
       return saved ? (JSON.parse(saved).geodokuDifficulty || 'medium') : 'medium';
@@ -195,11 +199,12 @@ export function GameProvider({ children }) {
   });
 
 
-  const newGame = (overrideType = null, overrideMode = null, overrideLanguage = null, overrideDifficulty = null) => {
+  const newGame = (overrideType = null, overrideMode = null, overrideLanguage = null, overrideDifficulty = null, overrideGeodokuMode = null) => {
       const activeType = overrideType || gameType;
       const activeMode = overrideMode || gameMode;
       const activeLanguage = overrideLanguage || gameLanguage;
       const activeDifficulty = overrideDifficulty || geodokuDifficulty;
+      const activeGeodokuMode = overrideGeodokuMode || geodokuMode;
 
       if (activeType === 'geoworld') {
           if (activeMode === 'unlimited') {
@@ -362,13 +367,14 @@ export function GameProvider({ children }) {
           gameMode,
           gameLanguage,
           gameType,
+          geodokuMode,
           geodokuDifficulty,
           geodokuBoard,
           geodokuSolution,
           geodokuRevealed,
           geodokuLives
       }));
-  }, [guesses, currentGuess, geoworldStatus, geodokuStatus, isGeoworldStarted, isGeodokuStarted, dailyWord, geoworldSpheres, geodokuSpheres, foundLetters, distanceWalked, gameMode, gameLanguage, endTime, gameType, geodokuDifficulty, geodokuBoard, geodokuSolution, geodokuRevealed, geodokuLives]);
+  }, [guesses, currentGuess, geoworldStatus, geodokuStatus, isGeoworldStarted, isGeodokuStarted, dailyWord, geoworldSpheres, geodokuSpheres, foundLetters, distanceWalked, gameMode, gameLanguage, endTime, gameType, geodokuMode, geodokuDifficulty, geodokuBoard, geodokuSolution, geodokuRevealed, geodokuLives]);
 
   // Watch location
   useEffect(() => {
@@ -576,6 +582,8 @@ export function GameProvider({ children }) {
         setGameLanguage,
         gameType,
         setGameType,
+        geodokuMode,
+        setGeodokuMode,
         geodokuDifficulty,
         setGeodokuDifficulty,
         geodokuBoard,
