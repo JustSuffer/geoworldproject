@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
-import { RefreshCw, Activity, Eye, EyeOff, Edit3, Undo, Eraser, Lightbulb, Heart } from 'lucide-react';
+import { RefreshCw, Activity, Eye, EyeOff, Edit3, Undo, Eraser, Lightbulb, Heart, Home } from 'lucide-react';
 
 export default function GeodokuGame() {
+    const navigate = useNavigate();
     const { 
         geodokuDifficulty, geodokuBoard, geodokuSolution, geodokuRevealed, 
         geodokuStatus, setGeodokuStatus, distanceWalked, newGame, startTime, endTime, setEndTime,
@@ -531,9 +533,17 @@ export default function GeodokuGame() {
                                 setHistory([]); 
                                 newGame('geodoku'); 
                             }}
-                            className={`w-full py-4 rounded-xl font-bold text-xl text-white transition-all shadow-lg ${geodokuStatus === 'won' ? 'bg-green-600 hover:bg-green-500 shadow-green-900/50' : 'bg-red-600 hover:bg-red-500 shadow-red-900/50'}`}
+                            className={`w-full mb-3 py-4 rounded-xl font-bold text-xl text-white transition-all shadow-lg ${geodokuStatus === 'won' ? 'bg-green-600 hover:bg-green-500 shadow-green-900/50' : 'bg-red-600 hover:bg-red-500 shadow-red-900/50'}`}
                         >
                             YENİ OYUN
+                        </button>
+                        
+                        <button 
+                            onClick={() => navigate('/')}
+                            className="w-full py-4 rounded-xl font-bold text-xl text-white transition-all bg-gray-800 hover:bg-gray-700 shadow-lg flex items-center justify-center gap-2"
+                        >
+                            <Home className="w-6 h-6" />
+                            ANA MENÜ
                         </button>
                     </div>
                 </div>

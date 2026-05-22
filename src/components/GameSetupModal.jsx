@@ -9,7 +9,7 @@ export default function GameSetupModal({ onClose, onStart, onContinue }) {
     
     const isStarted = gameType === 'geoworld' ? isGeoworldStarted : isGeodokuStarted;
     
-    const [step, setStep] = useState(isStarted ? 0 : 1);
+    const [step, setStep] = useState(0);
     const [showWarning, setShowWarning] = useState(false);
     
     // Shared Options
@@ -59,18 +59,17 @@ export default function GameSetupModal({ onClose, onStart, onContinue }) {
 
                 {step === 0 && (
                     <div className="flex flex-col gap-4">
-                        {isStarted && (
-                            <button 
-                                onClick={onContinue}
-                                className="w-full py-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-xl transition-all shadow-lg flex items-center justify-center gap-2"
-                            >
-                                <Play className="w-6 h-6 fill-current" />
-                                CONTINUE
-                            </button>
-                        )}
+                        <button 
+                            onClick={onContinue}
+                            disabled={!isStarted}
+                            className={`w-full py-4 rounded-xl font-bold text-xl transition-all shadow-lg flex items-center justify-center gap-2 ${isStarted ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'}`}
+                        >
+                            <Play className="w-6 h-6 fill-current" />
+                            CONTINUE
+                        </button>
                         <button 
                             onClick={handleNewGameClick}
-                            className="w-full py-4 bg-gray-800 hover:bg-gray-700 rounded-xl font-bold text-xl transition-all"
+                            className="w-full py-4 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-bold text-xl transition-all"
                         >
                             NEW GAME
                         </button>
