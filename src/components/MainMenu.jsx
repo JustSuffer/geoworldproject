@@ -106,7 +106,11 @@ export default function MainMenu({ onAuth }) {
             {setupOpen && (
                 <GameSetupModal 
                     onClose={() => setSetupOpen(false)} 
-                    onStart={handleGameStart} 
+                    onStart={handleGameStart}
+                    onContinue={() => {
+                        setSetupOpen(false);
+                        navigate('/play');
+                    }}
                 />
             )}
 
