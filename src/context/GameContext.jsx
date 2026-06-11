@@ -515,36 +515,59 @@ export function GameProvider({ children }) {
             if (gameType === 'geodoku' && newlyFound > 0) {
                 setTimeout(() => {
                     setGeodokuRevealed(prev => {
-                        const revealCount = geodokuDifficulty === 'easy' ? 3 : (geodokuDifficulty === 'medium' ? 2 : 1);
-                        const totalReveal = newlyFound * revealCount;
+                        const revealCount = geodokuDifficulty === 'easy' ? 2 : 1;
+                        let totalReveal = newlyFound * revealCount;
                         
+                        // Read user's current answers so we don't reveal cells they've already filled
+                        const savedAnswersStr = localStorage.getItem('geodokuAnswers');
+                        const userAnswers = savedAnswersStr ? JSON.parse(savedAnswersStr) : {};
+                        const answeredIndices = Object.keys(userAnswers).map(Number);
+                        
+                        // 1. Prioritize clues that the user HAS NOT answered yet
                         const unrevealedClues = [];
                         for(let i=0; i<81; i++) {
-                            if (geodokuBoard && geodokuBoard[i] !== '-' && !prev.includes(i)) {
+                            if (geodokuBoard && geodokuBoard[i] !== '-' && !prev.includes(i) && !answeredIndices.includes(i)) {
                                 unrevealedClues.push(i);
                             }
                         }
                         
-                        const unrevealedAny = [];
-                        if (unrevealedClues.length < totalReveal) {
-                            for(let i=0; i<81; i++) {
-                                if (!prev.includes(i) && !unrevealedClues.includes(i)) {
-                                    unrevealedAny.push(i);
-                                }
+                        // 2. Then, completely empty cells that the user HAS NOT answered yet
+                        const unrevealedEmpty = [];
+                        for(let i=0; i<81; i++) {
+                            if (geodokuBoard && geodokuBoard[i] === '-' && !prev.includes(i) && !answeredIndices.includes(i)) {
+                                unrevealedEmpty.push(i);
+                            }
+                        }
+
+                        // 3. If we STILL need more, pick cells the user answered (to verify them as correct)
+                        const unrevealedButAnswered = [];
+                        for(let i=0; i<81; i++) {
+                            if (!prev.includes(i) && answeredIndices.includes(i)) {
+                                unrevealedButAnswered.push(i);
                             }
                         }
                         
                         const toReveal = [];
+                        
+                        // Pick from unrevealed clues
                         while(toReveal.length < totalReveal && unrevealedClues.length > 0) {
                             const randIdx = Math.floor(Math.random() * unrevealedClues.length);
                             toReveal.push(unrevealedClues[randIdx]);
                             unrevealedClues.splice(randIdx, 1);
                         }
                         
-                        while(toReveal.length < totalReveal && unrevealedAny.length > 0) {
-                            const randIdx = Math.floor(Math.random() * unrevealedAny.length);
-                            toReveal.push(unrevealedAny[randIdx]);
-                            unrevealedAny.splice(randIdx, 1);
+                        // Pick from unrevealed empty
+                        while(toReveal.length < totalReveal && unrevealedEmpty.length > 0) {
+                            const randIdx = Math.floor(Math.random() * unrevealedEmpty.length);
+                            toReveal.push(unrevealedEmpty[randIdx]);
+                            unrevealedEmpty.splice(randIdx, 1);
+                        }
+
+                        // Pick from unrevealed but answered (as fallback)
+                        while(toReveal.length < totalReveal && unrevealedButAnswered.length > 0) {
+                            const randIdx = Math.floor(Math.random() * unrevealedButAnswered.length);
+                            toReveal.push(unrevealedButAnswered[randIdx]);
+                            unrevealedButAnswered.splice(randIdx, 1);
                         }
                         
                         return [...prev, ...toReveal];
