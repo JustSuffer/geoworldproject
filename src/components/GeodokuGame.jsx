@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
+import { supabase } from '../supabaseClient';
 import { RefreshCw, Activity, Eye, EyeOff, Edit3, Undo, Eraser, Lightbulb, Heart, Home } from 'lucide-react';
 
 export default function GeodokuGame() {
@@ -8,8 +9,14 @@ export default function GeodokuGame() {
     const { 
         geodokuDifficulty, geodokuBoard, geodokuSolution, geodokuRevealed, 
         geodokuStatus, setGeodokuStatus, distanceWalked, newGame, startTime, endTime, setEndTime,
-        geodokuLives, setGeodokuLives
+        geodokuLives, setGeodokuLives, updateStats
     } = useGame();
+
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data }) => setUser(data?.user || null));
+    }, []);
 
     const [userAnswers, setUserAnswers] = useState(() => {
         const saved = localStorage.getItem('geodokuAnswers');
@@ -54,6 +61,7 @@ export default function GeodokuGame() {
                 if (timeLeft <= 0 && geodokuStatus === 'playing') {
                     setGeodokuStatus('lost');
                     setEndTime(Date.now());
+                    updateStats(false, 0, supabase, user);
                 }
             } else {
                 const h = Math.floor(diff / (1000 * 60 * 60));
@@ -71,7 +79,7 @@ export default function GeodokuGame() {
         const interval = setInterval(updateElapsed, 1000);
         updateElapsed();
         return () => clearInterval(interval);
-    }, [startTime, endTime, geodokuStatus, geodokuDifficulty, setGeodokuStatus, setEndTime]);
+    }, [startTime, endTime, geodokuStatus, geodokuDifficulty, setGeodokuStatus, setEndTime, updateStats, user]);
 
     // Check Win Condition
     useEffect(() => {
@@ -79,8 +87,8 @@ export default function GeodokuGame() {
 
         let isWon = true;
         for (let i = 0; i < 81; i++) {
-            if (geodokuRevealed.includes(i)) continue;
-            if (userAnswers[i] !== geodokuSolution[i]) {
+            const val = geodokuRevealed.includes(i) ? geodokuSolution[i] : userAnswers[i];
+            if (val !== geodokuSolution[i]) {
                 isWon = false;
                 break;
             }
@@ -89,8 +97,9 @@ export default function GeodokuGame() {
         if (isWon) {
             setGeodokuStatus('won');
             setEndTime(Date.now());
+            updateStats(true, null, supabase, user);
         }
-    }, [userAnswers, geodokuRevealed, geodokuBoard, geodokuSolution, geodokuStatus, setGeodokuStatus, setEndTime]);
+    }, [userAnswers, geodokuRevealed, geodokuBoard, geodokuSolution, geodokuStatus, setGeodokuStatus, setEndTime, updateStats, user]);
 
     // Clear answers/notes on new game
     useEffect(() => {
@@ -189,6 +198,7 @@ export default function GeodokuGame() {
                 if (newLives <= 0) {
                     setGeodokuStatus('lost');
                     setEndTime(Date.now());
+                    updateStats(false, 0, supabase, user);
                 }
             }
             

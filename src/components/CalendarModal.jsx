@@ -73,9 +73,12 @@ export default function CalendarModal({ onClose }) {
                     {/* Days */}
                     <div className="grid grid-cols-7 gap-1 md:gap-2">
                         {days.map((date, index) => {
-                            const dateStr = date.toISOString().split('T')[0];
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const dayNum = String(date.getDate()).padStart(2, '0');
+                            const dateStr = `${year}-${month}-${dayNum}`;
                             const status = history[dateStr];
-                            const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth();
+                            const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
                             
                             let bgClass = "bg-gray-800 border-gray-700 text-gray-500";
                             if (status === 'won') bgClass = "bg-green-500/20 border-green-500 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]";

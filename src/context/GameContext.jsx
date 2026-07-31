@@ -46,10 +46,36 @@ export function GameProvider({ children }) {
       return saved && JSON.parse(saved).geodokuLives !== undefined ? JSON.parse(saved).geodokuLives : 3;
   });
 
+  // Date & Streak Helpers
+  const getLocalDateStr = (d = new Date()) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const validateStreak = (statsObj) => {
+    if (!statsObj) return statsObj;
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    
+    const todayStr = getLocalDateStr(today);
+    const yesterdayStr = getLocalDateStr(yesterday);
+    
+    const history = statsObj.history || {};
+    const hasWonRecently = history[todayStr] === 'won' || history[yesterdayStr] === 'won';
+    
+    if (!hasWonRecently && (statsObj.currentStreak || 0) > 0) {
+        return { ...statsObj, currentStreak: 0 };
+    }
+    return statsObj;
+  };
+
   // Global Stats & History
   const [stats, setStats] = useState(() => {
     const saved = localStorage.getItem('wordleStats');
-    return saved ? JSON.parse(saved) : {
+    const parsed = saved ? JSON.parse(saved) : {
       played: 0,
       wins: 0,
       currentStreak: 0,
@@ -57,6 +83,7 @@ export function GameProvider({ children }) {
       distribution: {1:0, 2:0, 3:0, 4:0, 5:0, 6:0},
       history: {} // { 'YYYY-MM-DD': 'won' | 'lost' }
     };
+    return validateStreak(parsed);
   });
 
   const loadStats = async (userId, supabase) => {
@@ -65,44 +92,47 @@ export function GameProvider({ children }) {
     };
 
     if (userId && supabase) {
-        const { data, error } = await supabase
+        const { data } = await supabase
             .from('profiles')
             .select('stats')
             .eq('id', userId)
             .single();
         
         if (data && data.stats) {
-            // merge history carefully
             const mergedHistory = { ...localStats.history, ...(data.stats.history || {}) };
             localStats = { ...localStats, ...data.stats, history: mergedHistory };
         }
     }
     
-    // Ensure winRate is computed but we do it on the fly or keep it in state
+    localStats = validateStreak(localStats);
     localStats.winRate = localStats.played > 0 ? Math.round((localStats.wins / localStats.played) * 100) : 0;
     setStats(localStats);
+    localStorage.setItem('wordleStats', JSON.stringify(localStats));
   };
 
   const updateStats = async (won, guessCount, supabaseObj, userObj) => {
       const newStats = { ...stats };
       newStats.played += 1;
       
-      const todayDateStr = new Date().toISOString().split('T')[0];
+      const todayDateStr = getLocalDateStr();
       
-      // Ensure history object exists
       if (!newStats.history) newStats.history = {};
 
       if (won) {
-          newStats.wins = (newStats.wins || 0) + 1;
-          newStats.currentStreak += 1;
-          newStats.maxStreak = Math.max(newStats.maxStreak || 0, newStats.currentStreak);
+          if (newStats.history[todayDateStr] !== 'won') {
+              newStats.wins = (newStats.wins || 0) + 1;
+              newStats.currentStreak = (newStats.currentStreak || 0) + 1;
+              newStats.maxStreak = Math.max(newStats.maxStreak || 0, newStats.currentStreak);
+          }
           
           if (guessCount) {
              newStats.distribution[guessCount] = (newStats.distribution[guessCount] || 0) + 1;
           }
           newStats.history[todayDateStr] = 'won';
       } else {
-          newStats.currentStreak = 0;
+          if (newStats.history[todayDateStr] !== 'won') {
+              newStats.currentStreak = 0;
+          }
           newStats.history[todayDateStr] = 'lost';
       }
       
@@ -266,6 +296,13 @@ export function GameProvider({ children }) {
           setGeodokuLives(3);
       }
   };
+
+  // Auto-generate Geodoku board if missing
+  useEffect(() => {
+      if (gameType === 'geodoku' && !geodokuBoard) {
+          newGame('geodoku');
+      }
+  }, [gameType, geodokuBoard]);
 
   // Update daily word at midnight if in daily mode
   useEffect(() => {
